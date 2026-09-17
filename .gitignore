@@ -1,0 +1,32 @@
+# Environment variables & secrets
+.env
+*.env.local
+
+# Python / Flask
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.db
+site.db
+instance/
+data/
+Docker-Flask/ORM/data/
+venv/
+.venv/
+env/
+ENV/
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+*.iml
+.idea/
+local.properties
+.DS_Store
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/
