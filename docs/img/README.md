@@ -1,6 +1,6 @@
 # Evidencias de la Práctica 2 (Capturas de Pantalla)
 
-En este directorio se deben colocar las capturas de pantalla requeridas por la especificación de la práctica:
+En este directorio se encuentran las capturas de pantalla requeridas para la práctica, mostrando el funcionamiento correcto de el backend REST, pruebas de operaciones CRUD y Docker:
 
 1. `01_registro_exitoso.png`: Pantalla de registro de usuario nuevo en la aplicación móvil con mensaje de confirmación.
 2. `02_registro_duplicado.png`: Mensaje de error al intentar registrar un usuario que ya existe (código 400).
