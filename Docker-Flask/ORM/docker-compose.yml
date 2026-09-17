@@ -1,17 +1,46 @@
 version: '3.8'
 
 services:
+  # Servicio de Base de Datos Relacional PostgreSQL 17 (Práctica recomendada por la cátedra)
+  postgres:
+    image: postgres:17
+    container_name: postgres17_7CV4_sep2026
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Servicio Backend Flask REST (API de Autenticación y CRUD)
   web:
-    # Construir usando el Dockerfile del directorio actual (.)
+    # Construir usando el Dockerfile de la aplicación Flask
     build: .
     container_name: flask_login_backend
     
-    # Mapeo de puertos: Puerto PC : Puerto Contenedor
+    # Mapeo de puertos: Puerto Host : Puerto Contenedor
     ports:
       - "5000:5000"
     
-    # Volúmenes: Sincroniza tu carpeta actual con /app en el contenedor.
-    # Esto permite que si cambias el código en tu PC, se actualice en Docker
-    # sin tener que reconstruir la imagen (gracias al debug=True de Flask).
+    # Cargar variables de entorno desde .env
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PORT=5000
+      # Conexión por defecto al servicio postgres dentro de la red del compose
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+    
+    # Garantiza que el servicio postgres arranque primero
+    depends_on:
+      - postgres
+
+    # Volúmenes: Sincroniza la carpeta local con /app en el contenedor para hot-reload
     volumes:
       - .:/app
+    
+    restart: unless-stopped
