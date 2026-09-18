@@ -10,11 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +31,9 @@ import androidx.compose.ui.unit.dp
 enum class AppDestination(val title: String) {
     LOGIN("Inicio de Sesión"),
     REGISTER("Registro de Usuario"),
-    CRUD("Operaciones CRUD (Tareas)")
+    PROFILE("Mi Perfil"),
+    USER_MANAGEMENT("Gestión de Usuarios (CRUD)"),
+    TASKS("Gestión de Tareas")
 }
 
 @Composable
@@ -38,6 +41,7 @@ fun AppDrawerContent(
     currentDestination: AppDestination,
     isLoggedIn: Boolean,
     currentUsername: String?,
+    isAdmin: Boolean,
     onNavigate: (AppDestination) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -52,58 +56,83 @@ fun AppDrawerContent(
             Column {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
-                    contentDescription = "Avatar de Usuario",
+                    contentDescription = "Avatar",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(56.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "Práctica 2 - Móviles",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = if (isLoggedIn) "Usuario: ${currentUsername ?: "Activo"}" else "Estado: No autenticado",
+                    text = if (isLoggedIn) {
+                        "Usuario: ${currentUsername ?: "Activo"} • (${if (isAdmin) "Admin" else "Usuario"})"
+                    } else {
+                        "Estado: No autenticado"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Opción 1: Inicio de Sesión
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Default.Lock, contentDescription = null) },
-            label = { Text("Inicio de Sesión") },
-            selected = currentDestination == AppDestination.LOGIN,
-            onClick = { onNavigate(AppDestination.LOGIN) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
+        if (!isLoggedIn) {
+            // Opción: Inicio de Sesión
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                label = { Text("Inicio de Sesión") },
+                selected = currentDestination == AppDestination.LOGIN,
+                onClick = { onNavigate(AppDestination.LOGIN) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
 
-        // Opción 2: Registro de Usuario
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
-            label = { Text("Registro de Usuario") },
-            selected = currentDestination == AppDestination.REGISTER,
-            onClick = { onNavigate(AppDestination.REGISTER) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
+            // Opción: Registro de Usuario
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Default.PersonAdd, contentDescription = null) },
+                label = { Text("Registro de Usuario") },
+                selected = currentDestination == AppDestination.REGISTER,
+                onClick = { onNavigate(AppDestination.REGISTER) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+        } else {
+            // Opción: Mi Perfil (modificar propia información)
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                label = { Text("Mi Perfil (Editar mis datos)") },
+                selected = currentDestination == AppDestination.PROFILE,
+                onClick = { onNavigate(AppDestination.PROFILE) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
 
-        // Opción 3: Operaciones CRUD
-        NavigationDrawerItem(
-            icon = { Icon(Icons.Default.FormatListBulleted, contentDescription = null) },
-            label = { Text("Operaciones CRUD") },
-            selected = currentDestination == AppDestination.CRUD,
-            onClick = { onNavigate(AppDestination.CRUD) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-        )
+            // Si es Administrador: Gestión de Usuarios CRUD
+            if (isAdmin) {
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = null) },
+                    label = { Text("Gestión de Usuarios (Admin CRUD)") },
+                    selected = currentDestination == AppDestination.USER_MANAGEMENT,
+                    onClick = { onNavigate(AppDestination.USER_MANAGEMENT) },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+            }
+
+            // Opción: Tareas
+            NavigationDrawerItem(
+                icon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null) },
+                label = { Text("Gestión de Tareas") },
+                selected = currentDestination == AppDestination.TASKS,
+                onClick = { onNavigate(AppDestination.TASKS) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Cerrar sesión si está autenticado
         if (isLoggedIn) {
             NavigationDrawerItem(
                 icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
@@ -114,7 +143,6 @@ fun AppDrawerContent(
             )
         }
 
-        // Pie de navegación con información de API
         Box(
             modifier = Modifier
                 .fillMaxWidth()

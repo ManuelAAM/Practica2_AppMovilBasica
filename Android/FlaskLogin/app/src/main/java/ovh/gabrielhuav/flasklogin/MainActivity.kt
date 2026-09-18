@@ -34,8 +34,10 @@ import ovh.gabrielhuav.flasklogin.data.session.SessionManager
 import ovh.gabrielhuav.flasklogin.ui.components.AppDestination
 import ovh.gabrielhuav.flasklogin.ui.components.AppDrawerContent
 import ovh.gabrielhuav.flasklogin.ui.screens.LoginScreen
+import ovh.gabrielhuav.flasklogin.ui.screens.ProfileScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.RegisterScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.TaskCrudScreen
+import ovh.gabrielhuav.flasklogin.ui.screens.UserCrudScreen
 import ovh.gabrielhuav.flasklogin.ui.theme.FlaskLoginTheme
 
 class MainActivity : ComponentActivity() {
@@ -58,13 +60,20 @@ fun MainApp() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
 
-    // Estado reactivo de sesión
+    // Estados reactivos de sesión y rol
     var isLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
     var currentUsername by remember { mutableStateOf(sessionManager.getUsername()) }
+    var isAdmin by remember { mutableStateOf(sessionManager.isAdmin()) }
 
-    // Destino actual: si está logueado va a CRUD, si no a LOGIN
+    // Destino inicial dinámico
     var currentDestination by remember {
-        mutableStateOf(if (isLoggedIn) AppDestination.CRUD else AppDestination.LOGIN)
+        mutableStateOf(
+            when {
+                !isLoggedIn -> AppDestination.LOGIN
+                isAdmin -> AppDestination.USER_MANAGEMENT
+                else -> AppDestination.PROFILE
+            }
+        )
     }
 
     val closeDrawerAndNavigate: (AppDestination) -> Unit = { destination ->
@@ -78,6 +87,7 @@ fun MainApp() {
         sessionManager.clearSession()
         isLoggedIn = false
         currentUsername = null
+        isAdmin = false
         currentDestination = AppDestination.LOGIN
         Toast.makeText(context, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show()
         coroutineScope.launch {
@@ -92,6 +102,7 @@ fun MainApp() {
                 currentDestination = currentDestination,
                 isLoggedIn = isLoggedIn,
                 currentUsername = currentUsername,
+                isAdmin = isAdmin,
                 onNavigate = { destination ->
                     closeDrawerAndNavigate(destination)
                 },
@@ -133,10 +144,11 @@ fun MainApp() {
                 when (currentDestination) {
                     AppDestination.LOGIN -> {
                         LoginScreen(
-                            onLoginSuccess = { username ->
+                            onLoginSuccess = { username, role ->
                                 isLoggedIn = true
                                 currentUsername = username
-                                currentDestination = AppDestination.CRUD
+                                isAdmin = role.equals("admin", ignoreCase = true)
+                                currentDestination = if (isAdmin) AppDestination.USER_MANAGEMENT else AppDestination.PROFILE
                             },
                             onNavigateToRegister = {
                                 currentDestination = AppDestination.REGISTER
@@ -152,7 +164,27 @@ fun MainApp() {
                         )
                     }
 
-                    AppDestination.CRUD -> {
+                    AppDestination.PROFILE -> {
+                        ProfileScreen(
+                            onProfileUpdated = { updatedUsername ->
+                                currentUsername = updatedUsername
+                            }
+                        )
+                    }
+
+                    AppDestination.USER_MANAGEMENT -> {
+                        if (isAdmin) {
+                            UserCrudScreen()
+                        } else {
+                            ProfileScreen(
+                                onProfileUpdated = { updatedUsername ->
+                                    currentUsername = updatedUsername
+                                }
+                            )
+                        }
+                    }
+
+                    AppDestination.TASKS -> {
                         TaskCrudScreen(
                             onNavigateToLogin = {
                                 currentDestination = AppDestination.LOGIN

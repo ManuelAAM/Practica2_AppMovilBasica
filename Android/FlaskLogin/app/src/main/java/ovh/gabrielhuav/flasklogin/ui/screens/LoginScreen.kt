@@ -53,7 +53,7 @@ import ovh.gabrielhuav.flasklogin.data.session.SessionManager
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (username: String) -> Unit,
+    onLoginSuccess: (username: String, role: String) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
     val context = LocalContext.current
@@ -85,17 +85,21 @@ fun LoginScreen(
                     isLoading = false
                     if (response.isSuccessful) {
                         val body = response.body()
-                        if (body != null && body.token != null) {
+                        val token = body?.token
+                        if (body != null && !token.isNullOrBlank()) {
+                            val userRole = body.role ?: "user"
+                            val currentUsername = body.username ?: username.trim()
                             sessionManager.saveAuthSession(
-                                token = body.token,
+                                token = token,
                                 userId = body.userId ?: 0,
-                                username = body.username ?: username.trim()
+                                username = currentUsername,
+                                role = userRole
                             )
-                            successMessage = "¡Bienvenido, ${body.username}!"
+                            successMessage = "¡Bienvenido, $currentUsername! (Rol: ${if (userRole == "admin") "Administrador" else "Usuario"})"
                             Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
-                            onLoginSuccess(body.username ?: username.trim())
+                            onLoginSuccess(currentUsername, userRole)
                         } else {
-                            errorMessage = "Respuesta del servidor incompleta"
+                            errorMessage = "Respuesta del servidor incompleta o token ausente"
                         }
                     } else {
                         val errorJson = response.errorBody()?.string()
