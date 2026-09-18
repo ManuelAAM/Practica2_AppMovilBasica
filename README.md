@@ -34,30 +34,35 @@ El presente proyecto implementa un ecosistema cliente-servidor compuesto por:
 #### Archivos Modificados respecto al Repositorio Base
 | Archivo | Ruta | Modificaciones Realizadas |
 |:---|:---|:---|
-| `app.py` | `Docker-Flask/ORM/` | Se implementó el modelo relacional `Task` (Tareas), los endpoints CRUD completos (`POST`, `GET`, `PUT`, `DELETE`), el decorador de seguridad `@token_required` con JWT, expiración de 24 horas, y la arquitectura híbrida con fallback tolerante a fallos entre PostgreSQL 17 y SQLite. |
+| `app.py` | `Docker-Flask/ORM/` | Se implementó el control de acceso basado en roles (`user` y `admin`), el decorador `@admin_required`, endpoints para gestión de perfil propio (`/profile`) y CRUD administrativo de cuentas (`/users`), seeder automático de la cuenta administrador (`admin` / `Admin123*`), el modelo relacional `Task` (Tareas) con CRUD completo, decorador `@token_required` con JWT (24h) y arquitectura híbrida con fallback automático entre PostgreSQL 17 y SQLite. |
 | `docker-compose.yml` | `Docker-Flask/ORM/` | Se configuró una arquitectura multicontenedor añadiendo el servicio de base de datos `postgres:17` (`postgres17_7CV4_sep2026`) con volumen persistente en `./data`, puerto 5432, inyección de variables de entorno y enlace de red con el servicio `web`. |
 | `requirements.txt` | `Docker-Flask/ORM/` | Se agregaron las librerías `PyJWT` (manejo de tokens firmados), `python-dotenv` (variables de entorno) y `psycopg2-binary` (controlador de conexión para PostgreSQL). |
 | `build.gradle.kts` / `libs.versions.toml` | `Android/FlaskLogin/` | Se agregaron dependencias de `Retrofit 2`, `OkHttp 3`, `converter-gson`, `material-icons-extended` y `lifecycle-viewmodel-compose`. |
 | `AndroidManifest.xml` | `Android/FlaskLogin/` | Se declaró el permiso de red `<uses-permission android:name="android.permission.INTERNET" />` y se habilitó `android:usesCleartextTraffic="true"` para permitir peticiones HTTP en desarrollo local. |
-| `MainActivity.kt` | `Android/FlaskLogin/` | Se rediseñó el contenedor principal de la aplicación, implementando el `ModalNavigationDrawer`, la `TopAppBar` con menú desplegable, control de estado reactivo de sesión y navegación hacia las pantallas de Login, Registro y CRUD. |
+| `MainActivity.kt` | `Android/FlaskLogin/` | Se rediseñó el contenedor principal de la aplicación, implementando el `ModalNavigationDrawer`, la `TopAppBar` con menú dinámico, control de estado reactivo de sesión y navegación condicionada por roles (Perfil de Usuario, Gestión de Usuarios para Administradores y CRUD de Tareas). |
+| `User.kt` | `Android/.../data/model/` | Se extendieron las clases de datos con el campo `role`, y se crearon modelos para `UpdateProfileRequest`, `AdminCreateUserRequest`, `AdminUpdateUserRequest`, `UsersListResponse` y `SingleUserResponse`. |
+| `SessionManager.kt` | `Android/.../data/session/` | Se agregó persistencia y consulta del rol del usuario (`isAdmin()`, `getRole()`) y método para actualizar en caliente credenciales locales tras modificar el perfil. |
+| `ApiService.kt` | `Android/.../data/api/` | Se añadieron las llamadas suspendidas para `/profile` (GET, PUT) y los endpoints administrativos de `/users` (GET, POST, PUT, DELETE). |
+| `AppDrawer.kt` | `Android/.../ui/components/` | Se implementó el badge visual de rol (`ADMINISTRADOR` / `USUARIO`) en el encabezado y opciones de navegación dinámicas según privilegios. |
 | `README.md` | Raíz | Reestructuración total con portada formal, marco teórico en palabras propias, catálogo de endpoints con ejemplos JSON, instrucciones paso a paso de Docker y evidencias. |
 
 #### Archivos Nuevos Creados
 | Archivo | Ruta | Propósito en el Proyecto |
 |:---|:---|:---|
-| `.gitignore` | Raíz | Exclusión de secretos (`.env`), base de datos local SQLite, directorio de almacenamiento de Postgres (`data/`) y archivos generados por Gradle. |
+| `.gitignore` | Raíz | Exclusión de secretos (`.env`), base de datos local SQLite, directorio de almacenamiento de Postgres (`data/`) y archivos generados por Gradle (permitiendo explícitamente el APK compilado en `Android/apk/`). |
 | `.env.example` / `.env` | `Docker-Flask/ORM/` | Plantilla de configuración segura y archivo de variables locales para llaves criptográficas y cadenas de conexión a base de datos. |
-| `test_api.py` | `Docker-Flask/ORM/` | Suite automatizada de pruebas unitarias y de integración que valida los 12 escenarios de la API REST (códigos 200, 201, 400, 401, 404). |
-| `User.kt` & `Task.kt` | `Android/.../data/model/` | Clases de datos Kotlin (`Data Classes`) para serialización y mapeo de peticiones y respuestas JSON de autenticación y CRUD. |
-| `ApiService.kt` | `Android/.../data/api/` | Interfaz de Retrofit que define las funciones suspendidas (`suspend fun`) para cada endpoint HTTP. |
+| `test_api.py` | `Docker-Flask/ORM/` | Suite automatizada de pruebas unitarias y de integración que valida los 12 escenarios de la API REST (autenticación, roles, perfiles, CRUD admin y tareas). |
+| `ProfileScreen.kt` | `Android/.../ui/screens/` | Pantalla de perfil personal donde el usuario consulta su ID/rol y actualiza su propio nombre de usuario y contraseña. |
+| `UserCrudScreen.kt` | `Android/.../ui/screens/` | Pantalla de administración exclusiva para administradores con listado completo de usuarios, creación de cuentas con rol, edición de credenciales y eliminación protegida. |
+| `Task.kt` | `Android/.../data/model/` | Clases de datos Kotlin (`Data Classes`) para serialización y mapeo de peticiones y respuestas JSON de tareas. |
 | `AuthInterceptor.kt` | `Android/.../data/api/` | Interceptor de red de OkHttp que adjunta automáticamente el encabezado `Authorization: Bearer <token>` en cada petición. |
 | `RetrofitClient.kt` | `Android/.../data/api/` | Singleton cliente de Retrofit con soporte para la IP especial de emulador (`10.0.2.2:5000`) e IP de dispositivo físico. |
-| `SessionManager.kt` | `Android/.../data/session/` | Clase para la persistencia local del token JWT y nombre de usuario autenticado en `SharedPreferences`. |
 | `LoginScreen.kt` | `Android/.../ui/screens/` | Pantalla de inicio de sesión con formulario, validación, feedback de carga y consumo de la API. |
 | `RegisterScreen.kt` | `Android/.../ui/screens/` | Pantalla de registro de nuevos usuarios con confirmación de contraseñas y redirección automática. |
 | `TaskCrudScreen.kt` | `Android/.../ui/screens/` | Pantalla principal de gestión de tareas con `LazyColumn`, chips de estado y botón flotante de acción. |
-| `AppDrawer.kt` | `Android/.../ui/components/` | Componente de menú desplegable lateral (Drawer) con cabecera de usuario y opciones de navegación. |
 | `TaskDialogs.kt` | `Android/.../ui/components/` | Diálogos modales para Crear, Editar y Confirmar Eliminación de tareas. |
+| `Android/apk/app-debug.apk` | `Android/apk/` | Binario precompilado de la aplicación Android listo para instalación directa vía ADB o emulador sin compilar. |
+| `Android/apk/README.md` | `Android/apk/` | Guía de uso e instalación directa del archivo binario APK. |
 | `docs/img/` | Raíz | Directorio para alojar las capturas de pantalla de evidencia. |
 
 ---
@@ -132,26 +137,42 @@ Almacenar contraseñas en texto plano o utilizando funciones hash desactualizada
 4. **Almacenamiento Seguro de Secretos**:
    Ninguna credencial o secreto sensible reside en duro en el código fuente. Se utiliza el estándar `.env`, cargado mediante `python-dotenv`. Se distribuye en el repositorio el archivo plantilla [.env.example](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Docker-Flask/ORM/.env.example) y se incluye `.env` en el [.gitignore](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/.gitignore).
 5. **Persistencia de Sesión en la App Móvil**:
-   La app Android administra el ciclo de vida de la sesión mediante `SessionManager`, persistiendo el token y datos no sensibles del usuario en `SharedPreferences`. Un interceptor de OkHttp (`AuthInterceptor`) adjunta transparentemente el token en cada petición HTTP hacia la API REST.
+   La app Android administra el ciclo de vida de la sesión mediante `SessionManager`, persistiendo el token, nombre de usuario y rol autenticado en `SharedPreferences`. Un interceptor de OkHttp (`AuthInterceptor`) adjunta transparentemente el token en cada petición HTTP hacia la API REST.
+6. **Control de Acceso Basado en Roles (RBAC) y Usuario Administrador**:
+   El sistema implementa dos roles formalmente tipados:
+   - **Rol Usuario Estándar (`user`)**: Puede autenticarse, consultar y modificar su propia información personal (nombre de usuario y contraseña) a través del endpoint `/profile`, además de gestionar sus propias tareas.
+   - **Rol Administrador (`admin`)**: Posee acceso total al sistema. Puede consultar y editar sus propios datos, y ejecutar operaciones CRUD completas sobre todas las cuentas de usuario mediante el recurso `/users` (`GET`, `POST`, `PUT`, `DELETE`).
+   - **Cuenta Administradora Semilla Automática**: Al inicializar la base de datos, el backend verifica la existencia de un usuario con privilegios administrativos. Si no existe, genera automáticamente la cuenta:
+     - **Usuario:** `admin`
+     - **Contraseña:** `Admin123*`
+     - **Rol:** `admin`
+   - **Decorador `@admin_required`**: Valida que el token JWT contenga el atributo `role == 'admin'`. Si un usuario estándar intenta consumir rutas reservadas a administración, el servidor rechaza la solicitud de inmediato con código **403 Forbidden**.
 
 ---
 
 ### 2.3. Catálogo Detallado de Endpoints REST
 
-| Método | Ruta | Requiere Token | Código Éxito | Descripción |
-|:---|:---|:---:|:---:|:---|
-| `GET` | `/` | No | `200 OK` | Verificación de salud y estado de la API REST |
-| `POST` | `/register` | No | `201 Created` | Registro de nuevos usuarios con contraseña hasheada |
-| `POST` | `/login` | No | `200 OK` | Autenticación de usuarios y entrega de Token JWT |
-| `GET` | `/tasks` | **Sí (Bearer)** | `200 OK` | Lectura de todas las tareas del usuario autenticado |
-| `GET` | `/tasks/<id>` | **Sí (Bearer)** | `200 OK` | Lectura de una tarea específica por su identificador |
-| `POST` | `/tasks` | **Sí (Bearer)** | `201 Created` | Creación de una nueva tarea |
-| `PUT` | `/tasks/<id>` | **Sí (Bearer)** | `200 OK` | Actualización de título, descripción o estado de tarea |
-| `DELETE` | `/tasks/<id>` | **Sí (Bearer)** | `200 OK` | Eliminación de una tarea de la base de datos |
+| Método | Ruta | Requiere Token | Permisos | Código Éxito | Descripción |
+|:---|:---|:---:|:---:|:---:|:---|
+| `GET` | `/` | No | Público | `200 OK` | Verificación de salud y estado de la API REST |
+| `POST` | `/register` | No | Público | `201 Created` | Registro de nuevos usuarios estándar (`role: user`) |
+| `POST` | `/login` | No | Público | `200 OK` | Autenticación de usuarios, entrega de Token JWT y rol |
+| `GET` | `/profile` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Consulta del perfil y rol del usuario autenticado |
+| `PUT` | `/profile` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Modificación del username o contraseña del usuario propio |
+| `GET` | `/users` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Listado completo de todos los usuarios registrados |
+| `GET` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Consulta detallada de una cuenta de usuario específica |
+| `POST` | `/users` | **Sí (Bearer)** | **Solo Admin** | `201 Created` | Creación de una cuenta con rol asignable (`user`/`admin`) |
+| `PUT` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Modificación administrativa de credenciales o rol |
+| `DELETE` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Eliminación de usuario (con protección de auto-borrado) |
+| `GET` | `/tasks` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Lectura de todas las tareas del usuario autenticado |
+| `GET` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Lectura de una tarea específica por su identificador |
+| `POST` | `/tasks` | **Sí (Bearer)** | Cualquier Rol | `201 Created` | Creación de una nueva tarea |
+| `PUT` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Actualización de título, descripción o estado de tarea |
+| `DELETE` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Eliminación de una tarea de la base de datos |
 
 #### Ejemplos de Peticiones y Respuestas
 
-##### 1. Registro (`POST /register`)
+##### 1. Registro de Usuario (`POST /register`)
 ```json
 // Petición (Body JSON)
 {
@@ -163,8 +184,9 @@ Almacenar contraseñas en texto plano o utilizando funciones hash desactualizada
 {
   "status": "success",
   "message": "Usuario creado exitosamente",
-  "user_id": 1,
-  "username": "alumno_escom"
+  "user_id": 2,
+  "username": "alumno_escom",
+  "role": "user"
 }
 
 // Error: Usuario Duplicado (400 Bad Request)
@@ -178,8 +200,8 @@ Almacenar contraseñas en texto plano o utilizando funciones hash desactualizada
 ```json
 // Petición (Body JSON)
 {
-  "username": "alumno_escom",
-  "password": "PasswordSeguro2026*"
+  "username": "admin",
+  "password": "Admin123*"
 }
 
 // Respuesta Exitosa (200 OK)
@@ -188,7 +210,8 @@ Almacenar contraseñas en texto plano o utilizando funciones hash desactualizada
   "message": "Inicio de sesión exitoso",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user_id": 1,
-  "username": "alumno_escom"
+  "username": "admin",
+  "role": "admin"
 }
 
 // Error: Credenciales Incorrectas (401 Unauthorized)
@@ -198,9 +221,103 @@ Almacenar contraseñas en texto plano o utilizando funciones hash desactualizada
 }
 ```
 
-##### 3. Crear Tarea (`POST /tasks`)
+##### 3. Consultar y Modificar Perfil Propio (`GET` y `PUT /profile`)
 ```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Authorization: Bearer <token_jwt>
+```
+```json
+// GET /profile -> Respuesta Exitosa (200 OK)
+{
+  "status": "success",
+  "user": {
+    "id": 2,
+    "username": "alumno_escom",
+    "role": "user"
+  }
+}
+
+// PUT /profile -> Petición (Body JSON para cambiar datos propios)
+{
+  "username": "alumno_escom_actualizado",
+  "password": "NuevaPassword2026*"
+}
+
+// PUT /profile -> Respuesta Exitosa (200 OK)
+{
+  "status": "success",
+  "message": "Perfil actualizado exitosamente",
+  "user": {
+    "id": 2,
+    "username": "alumno_escom_actualizado",
+    "role": "user"
+  }
+}
+```
+
+##### 4. CRUD de Usuarios por Administrador (`/users`)
+```http
+Authorization: Bearer <token_jwt_de_admin>
+```
+```json
+// GET /users -> Listar todos los usuarios (200 OK)
+{
+  "status": "success",
+  "users": [
+    { "id": 1, "username": "admin", "role": "admin" },
+    { "id": 2, "username": "alumno_escom", "role": "user" }
+  ]
+}
+
+// POST /users -> Crear usuario desde panel administrativo (201 Created)
+// Petición:
+{
+  "username": "nuevo_docente",
+  "password": "Password123*",
+  "role": "user"
+}
+// Respuesta:
+{
+  "status": "success",
+  "message": "Usuario creado exitosamente",
+  "user": {
+    "id": 3,
+    "username": "nuevo_docente",
+    "role": "user"
+  }
+}
+
+// PUT /users/3 -> Modificar credenciales o rol de un usuario (200 OK)
+// Petición:
+{
+  "role": "admin"
+}
+// Respuesta:
+{
+  "status": "success",
+  "message": "Usuario actualizado exitosamente",
+  "user": {
+    "id": 3,
+    "username": "nuevo_docente",
+    "role": "admin"
+  }
+}
+
+// DELETE /users/3 -> Eliminar usuario (200 OK)
+{
+  "status": "success",
+  "message": "Usuario eliminado exitosamente"
+}
+
+// Error si un usuario no administrador intenta acceder (403 Forbidden):
+{
+  "status": "error",
+  "message": "Acceso denegado: se requieren permisos de administrador"
+}
+```
+
+##### 5. Crear Tarea (`POST /tasks`)
+```http
+Authorization: Bearer <token_jwt>
 Content-Type: application/json
 ```
 ```json
@@ -226,7 +343,7 @@ Content-Type: application/json
 }
 ```
 
-##### 4. Listar Tareas (`GET /tasks`)
+##### 6. Listar Tareas (`GET /tasks`)
 ```json
 // Respuesta Exitosa (200 OK)
 {
@@ -244,31 +361,20 @@ Content-Type: application/json
 }
 ```
 
-##### 5. Actualizar Tarea (`PUT /tasks/1`)
+##### 7. Actualizar y Eliminar Tarea (`PUT` y `DELETE /tasks/1`)
 ```json
-// Petición
+// PUT /tasks/1 -> Petición
 {
   "status": "completed"
 }
 
-// Respuesta Exitosa (200 OK)
+// PUT /tasks/1 -> Respuesta (200 OK)
 {
   "status": "success",
-  "message": "Tarea actualizada exitosamente",
-  "task": {
-    "id": 1,
-    "title": "Estudiar para examen de Aplicaciones Móviles",
-    "description": "Repasar Jetpack Compose y Retrofit",
-    "status": "completed",
-    "created_at": "2026-09-15 10:05:00",
-    "user_id": 1
-  }
+  "message": "Tarea actualizada exitosamente"
 }
-```
 
-##### 6. Eliminar Tarea (`DELETE /tasks/1`)
-```json
-// Respuesta Exitosa (200 OK)
+// DELETE /tasks/1 -> Respuesta (200 OK)
 {
   "status": "success",
   "message": "Tarea eliminada exitosamente"
@@ -407,6 +513,19 @@ python test_api.py
 4. Iniciar un Emulador Android (AVD) con API 24 o superior.
 5. Presionar el botón **Run 'app'** (Shift + F10).
 
+#### APK Precompilado (Ejecución Directa Sin Compilar ni Llaves Externas)
+
+Para cumplir con el requerimiento de entrega de un binario listo para ejecución inmediata, se incluye el APK ya compilado y firmado para depuración en el repositorio:
+
+- **Ruta del Binario:** [`Android/apk/app-debug.apk`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Android/apk/app-debug.apk)
+- **Autonomía Absoluta (Sin Llaves Externas):** La aplicación no requiere ninguna API key de terceros (como Firebase, Google APIs o servicios externos de pago). Utiliza una arquitectura REST pura con tokens JWT y Retrofit apuntando por defecto a `http://10.0.2.2:5000/`.
+- **Instalación Directa:**
+  - **Opción A (Arrastrar y Soltar):** Con el emulador Android encendido, arrastrar el archivo `app-debug.apk` directamente sobre la ventana del emulador. Android lo instalará automáticamente.
+  - **Opción B (Línea de comandos con ADB):**
+    ```bash
+    adb install Android/apk/app-debug.apk
+    ```
+
 ---
 
 ### 2.6. Evidencias de Ejecución (Capturas de Pantalla)
@@ -425,8 +544,10 @@ Las capturas deben colocarse en la carpeta [`docs/img/`](file:///c:/Users/osito/
 | **Registro de Usuario** | ![Registro](docs/img/01_registro_exitoso.png) | Creación exitosa de una nueva cuenta |
 | **Control de Duplicados (400)** | ![Duplicado](docs/img/02_registro_duplicado.png) | Validación y rechazo si el usuario ya existe |
 | **Credenciales Inválidas (401)**| ![Login Error](docs/img/03_login_invalido.png) | Manejo de contraseña incorrecta |
-| **Inicio de Sesión Exitoso** | ![Login OK](docs/img/04_login_exitoso.png) | Obtención de sesión con token JWT |
-| **Menú de Navegación (Drawer)** | ![Drawer](docs/img/05_drawer_navegacion.png) | Drawer lateral con opciones y estado de sesión |
+| **Inicio de Sesión Exitoso** | ![Login OK](docs/img/04_login_exitoso.png) | Obtención de sesión con token JWT y rol |
+| **Menú de Navegación (Drawer)** | ![Drawer](docs/img/05_drawer_navegacion.png) | Drawer lateral con opciones dinámicas y badge de rol |
+| **Perfil de Usuario (GET / PUT)** | ![Perfil](docs/img/11_perfil_usuario.png) | Consulta y modificación de datos personales propios |
+| **CRUD de Usuarios - Admin** | ![Admin Users](docs/img/12_admin_gestion_usuarios.png) | Listado, creación, edición y baja de usuarios por Administrador |
 | **CRUD: Crear Tarea (POST)** | ![Crear](docs/img/06_crud_crear.png) | Diálogo modal y registro de tarea (201) |
 | **CRUD: Listar Tareas (GET)** | ![Listar](docs/img/07_crud_listar.png) | Visualización reactiva de tareas en `LazyColumn` (200) |
 | **CRUD: Actualizar Tarea (PUT)**| ![Actualizar](docs/img/08_crud_actualizar.png)| Cambio de estado o edición de texto (200) |
