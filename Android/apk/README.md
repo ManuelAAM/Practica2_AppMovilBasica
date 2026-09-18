@@ -1,6 +1,6 @@
 ﻿# APK Precompilado de la Aplicación Android
 
-En este directorio se aloja el archivo binario precompilado de la aplicación móvil (`app-debug.apk`), listo para su instalación y ejecución directa sin requerir compilación previa ni llaves de API externas.
+En este directorio se aloja el archivo binario precompilado de la aplicación móvil (`app-debug.apk`), listo para  instalación y ejecución directa sin requerir compilación previa ni llaves de API externas.
 
 ---
 
