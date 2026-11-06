@@ -20,4 +20,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "FlaskLogin"
+include(":shared")
 include(":app")

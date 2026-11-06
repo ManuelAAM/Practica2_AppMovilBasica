@@ -19,7 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import ovh.gabrielhuav.flasklogin.data.model.TaskItem
+import ovh.gabrielhuav.flasklogin.shared.model.TaskItem
 
 @Composable
 fun CreateTaskDialog(

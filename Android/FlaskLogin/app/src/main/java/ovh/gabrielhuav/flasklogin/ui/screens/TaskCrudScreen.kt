@@ -38,6 +38,7 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,150 +53,129 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import ovh.gabrielhuav.flasklogin.data.api.RetrofitClient
-import ovh.gabrielhuav.flasklogin.data.model.TaskItem
-import ovh.gabrielhuav.flasklogin.data.model.TaskRequest
-import ovh.gabrielhuav.flasklogin.data.session.SessionManager
+import ovh.gabrielhuav.flasklogin.shared.model.TaskItem
+import ovh.gabrielhuav.flasklogin.shared.repository.AppRepository
 import ovh.gabrielhuav.flasklogin.ui.components.CreateTaskDialog
 import ovh.gabrielhuav.flasklogin.ui.components.DeleteTaskDialog
 import ovh.gabrielhuav.flasklogin.ui.components.EditTaskDialog
+import ovh.gabrielhuav.flasklogin.ui.components.SyncBanner
 
 @Composable
 fun TaskCrudScreen(
+    repository: AppRepository,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val sessionManager = remember { SessionManager(context) }
-    val apiService = remember { RetrofitClient.getApiService(context) }
 
     val tasksList = remember { mutableStateListOf<TaskItem>() }
     var isLoading by remember { mutableStateOf(false) }
+    var isSyncing by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val isOnline by repository.isOnlineFlow.collectAsState()
+    val lastSyncTimestamp = repository.cache.lastSyncTimestamp
+    val pendingActionsCount = repository.cache.pendingOfflineActionsCount()
 
     // Estados para diálogos modales de CRUD
     var showCreateDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<TaskItem?>(null) }
     var taskToDelete by remember { mutableStateOf<TaskItem?>(null) }
 
-    val isLoggedIn = sessionManager.isLoggedIn()
-    val currentUsername = sessionManager.getUsername() ?: "Usuario"
+    val currentUsername = repository.currentUser?.username ?: "Usuario"
+    val isLoggedIn = repository.currentToken != null
 
-    // Función para Cargar/Leer Tareas (READ)
+    // Cargar tareas (READ)
     val loadTasks: () -> Unit = {
         if (isLoggedIn) {
             isLoading = true
             errorMessage = null
             coroutineScope.launch {
-                try {
-                    val response = apiService.getTasks()
-                    isLoading = false
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        tasksList.clear()
-                        if (body != null) {
-                            tasksList.addAll(body.tasks)
-                        }
-                    } else {
-                        val errorJson = response.errorBody()?.string()
-                        val msg = try {
-                            JSONObject(errorJson ?: "").optString("message", "Error al obtener tareas (${response.code()})")
-                        } catch (e: Exception) {
-                            "Error del servidor: Código ${response.code()}"
-                        }
-                        errorMessage = msg
-                    }
-                } catch (e: Exception) {
-                    isLoading = false
-                    errorMessage = "Error de conexión: ${e.localizedMessage}"
+                val res = repository.getTasks(forceRefresh = true)
+                isLoading = false
+                if (res.isSuccess) {
+                    tasksList.clear()
+                    tasksList.addAll(res.getOrDefault(emptyList()))
+                } else {
+                    errorMessage = res.exceptionOrNull()?.message ?: "Error al obtener tareas"
                 }
             }
         }
     }
 
-    // Cargar al entrar a la pantalla
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) {
             loadTasks()
         }
     }
 
-    // Función para Crear Tarea (CREATE)
+    // CREATE
     val handleCreateTask: (String, String, String) -> Unit = { title, desc, status ->
         showCreateDialog = false
         coroutineScope.launch {
-            try {
-                val response = apiService.createTask(TaskRequest(title, desc, status))
-                if (response.isSuccessful) {
-                    Toast.makeText(context, "Tarea creada exitosamente", Toast.LENGTH_SHORT).show()
-                    loadTasks()
-                } else {
-                    Toast.makeText(context, "Error al crear tarea: ${response.code()}", Toast.LENGTH_LONG).show()
+            val res = repository.createTask(title, desc)
+            if (res.isSuccess) {
+                val created = res.getOrNull()
+                if (created != null) {
+                    tasksList.add(0, created)
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error de red: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Tarea creada exitosamente", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Fallo al crear la tarea", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // Función para Actualizar Tarea (UPDATE)
+    // UPDATE
     val handleUpdateTask: (Int, String, String, String) -> Unit = { id, title, desc, status ->
         taskToEdit = null
         coroutineScope.launch {
-            try {
-                val response = apiService.updateTask(id, TaskRequest(title, desc, status))
-                if (response.isSuccessful) {
-                    Toast.makeText(context, "Tarea actualizada", Toast.LENGTH_SHORT).show()
-                    loadTasks()
-                } else {
-                    Toast.makeText(context, "Error al actualizar: ${response.code()}", Toast.LENGTH_LONG).show()
+            val res = repository.updateTask(id, status, title, desc)
+            if (res.isSuccess) {
+                val index = tasksList.indexOfFirst { it.id == id }
+                if (index != -1) {
+                    tasksList[index] = tasksList[index].copy(
+                        title = title,
+                        description = desc,
+                        status = status
+                    )
                 }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error de red: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Tarea actualizada", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // Función para Alternar Estado Rápido (Completada/Pendiente)
-    val toggleTaskStatus: (TaskItem) -> Unit = { task ->
-        val newStatus = if (task.status == "completed") "pending" else "completed"
-        coroutineScope.launch {
-            try {
-                val response = apiService.updateTask(task.id, TaskRequest(task.title, task.description, newStatus))
-                if (response.isSuccessful) {
-                    loadTasks()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error al cambiar estado", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    // Función para Eliminar Tarea (DELETE)
+    // DELETE
     val handleDeleteTask: (Int) -> Unit = { id ->
         taskToDelete = null
         coroutineScope.launch {
-            try {
-                val response = apiService.deleteTask(id)
-                if (response.isSuccessful) {
-                    Toast.makeText(context, "Tarea eliminada exitosamente", Toast.LENGTH_SHORT).show()
-                    loadTasks()
-                } else {
-                    Toast.makeText(context, "Error al eliminar: ${response.code()}", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error de red: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            val res = repository.deleteTask(id)
+            if (res.isSuccess) {
+                tasksList.removeAll { it.id == id }
+                Toast.makeText(context, "Tarea eliminada", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // Si el usuario NO está autenticado
+    // TOGGLE STATUS
+    val toggleTaskStatus: (TaskItem) -> Unit = { task ->
+        val newStatus = if (task.status == "completed") "pending" else "completed"
+        coroutineScope.launch {
+            val res = repository.updateTask(task.id, newStatus)
+            if (res.isSuccess) {
+                val index = tasksList.indexOfFirst { it.id == task.id }
+                if (index != -1) {
+                    tasksList[index] = tasksList[index].copy(status = newStatus)
+                }
+            }
+        }
+    }
+
     if (!isLoggedIn) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
             Card(
@@ -208,28 +188,24 @@ fun TaskCrudScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
-                        contentDescription = "Bloqueado",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(64.dp)
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(56.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Sesión Requerida",
+                        text = "Sesión requerida",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Para realizar operaciones CRUD (Crear, Leer, Actualizar y Eliminar tareas), debes iniciar sesión en el backend REST.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "Por favor inicia sesión para gestionar tus tareas.",
                         color = MaterialTheme.colorScheme.outline
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = onNavigateToLogin,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Ir a Iniciar Sesión")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onNavigateToLogin) {
+                        Text("Iniciar Sesión")
                     }
                 }
             }
@@ -237,68 +213,70 @@ fun TaskCrudScreen(
         return
     }
 
-    // Si el usuario SÍ está autenticado
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Crear Tarea")
             }
         }
-    ) { innerPadding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
+                .padding(paddingValues)
         ) {
-            // Barra superior de la pantalla CRUD
+            // Banner de Conectividad y Sincronización
+            SyncBanner(
+                isOnline = isOnline,
+                lastSyncTimestamp = lastSyncTimestamp,
+                pendingActionsCount = pendingActionsCount,
+                isSyncing = isSyncing,
+                onSyncClick = {
+                    coroutineScope.launch {
+                        isSyncing = true
+                        val count = repository.syncPendingOfflineActions().getOrDefault(0)
+                        isSyncing = false
+                        Toast.makeText(context, "Sincronizado ($count operaciones resueltas)", Toast.LENGTH_SHORT).show()
+                        loadTasks()
+                    }
+                },
+                onToggleConnectivity = {
+                    repository.setNetworkConnectivity(!isOnline)
+                    Toast.makeText(
+                        context,
+                        if (!isOnline) "Modo Conectado activado" else "Modo Offline simulado (Modo Avión)",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            )
+
+            // Encabezado de la pantalla
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = "Mis Tareas",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        text = "Mis Tareas (CRUD)",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Sesión activa: $currentUsername",
+                        text = "Usuario: $currentUsername • Total: ${tasksList.size}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 IconButton(onClick = loadTasks) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Recargar lista")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Estado de Error
-            if (errorMessage != null) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(onClick = loadTasks) {
-                            Text("Reintentar conexión")
-                        }
-                    }
+                    Icon(Icons.Default.Refresh, contentDescription = "Recargar")
                 }
             }
 
@@ -313,7 +291,7 @@ fun TaskCrudScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Cargando tareas desde el backend REST...")
+                        Text("Sincronizando tareas...")
                     }
                 }
             } else if (tasksList.isEmpty() && errorMessage == null) {
@@ -349,7 +327,8 @@ fun TaskCrudScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
