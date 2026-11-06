@@ -10,17 +10,19 @@ __pycache__/
 *.db
 site.db
 instance/
-data/
+/data/
 Docker-Flask/ORM/data/
 venv/
 .venv/
 env/
 ENV/
 
-# Android / Gradle
+# Android / Gradle / KMP
 .gradle/
 build/
 app/build/
+shared/build/
+androidApp/build/
 *.iml
 .idea/
 local.properties
