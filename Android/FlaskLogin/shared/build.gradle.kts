@@ -5,13 +5,7 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-    }
+    androidTarget()
 
     listOf(
         iosX64(),
@@ -52,7 +46,7 @@ kotlin {
 
 android {
     namespace = "ovh.gabrielhuav.flasklogin.shared"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24

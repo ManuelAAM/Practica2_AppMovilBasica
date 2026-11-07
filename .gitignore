@@ -19,6 +19,7 @@ ENV/
 
 # Android / Gradle / KMP
 .gradle/
+.kotlin/
 build/
 app/build/
 shared/build/
@@ -31,5 +32,6 @@ local.properties
 *.aab
 !Android/apk/*.apk
 captures/
+*.pdf
 .externalNativeBuild/
 .cxx/

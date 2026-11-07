@@ -6,8 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.collectAsState
+import ovh.gabrielhuav.flasklogin.ui.components.SyncBanner
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
@@ -22,6 +26,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,12 +36,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import ovh.gabrielhuav.flasklogin.data.session.SessionManager
+import ovh.gabrielhuav.flasklogin.shared.model.UserData
+import ovh.gabrielhuav.flasklogin.shared.repository.AppRepository
 import ovh.gabrielhuav.flasklogin.ui.components.AppDestination
 import ovh.gabrielhuav.flasklogin.ui.components.AppDrawerContent
+import ovh.gabrielhuav.flasklogin.ui.screens.AdminAuditScreen
+import ovh.gabrielhuav.flasklogin.ui.screens.FavoritesScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.LoginScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.ProfileScreen
+import ovh.gabrielhuav.flasklogin.ui.screens.RecommendationsScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.RegisterScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.TaskCrudScreen
+import ovh.gabrielhuav.flasklogin.ui.screens.TvSearchScreen
 import ovh.gabrielhuav.flasklogin.ui.screens.UserCrudScreen
 import ovh.gabrielhuav.flasklogin.ui.theme.FlaskLoginTheme
 
@@ -57,6 +68,25 @@ class MainActivity : ComponentActivity() {
 fun MainApp() {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+
+    val isEmulator = remember {
+        android.os.Build.FINGERPRINT.startsWith("generic")
+                || android.os.Build.FINGERPRINT.startsWith("unknown")
+                || android.os.Build.MODEL.contains("google_sdk")
+                || android.os.Build.MODEL.contains("Emulator")
+                || android.os.Build.MODEL.contains("Android SDK built for x86")
+                || android.os.Build.MANUFACTURER.contains("Genymotion")
+                || (android.os.Build.BRAND.startsWith("generic") && android.os.Build.DEVICE.startsWith("generic"))
+                || "google_sdk" == android.os.Build.PRODUCT
+    }
+    val defaultBaseUrl = if (isEmulator) "http://10.0.2.2:5000" else "http://127.0.0.1:5000"
+
+    val appRepository = remember {
+        AppRepository().apply {
+            flaskApi.baseUrl = defaultBaseUrl
+        }
+    }
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
 
@@ -65,13 +95,28 @@ fun MainApp() {
     var currentUsername by remember { mutableStateOf(sessionManager.getUsername()) }
     var isAdmin by remember { mutableStateOf(sessionManager.isAdmin()) }
 
+    // Sincronizar repositorio KMP con la sesión persistida
+    LaunchedEffect(isLoggedIn) {
+        val token = sessionManager.getToken()
+        if (token != null && isLoggedIn) {
+            appRepository.setSession(
+                token = token,
+                user = UserData(
+                    id = sessionManager.getUserId(),
+                    username = sessionManager.getUsername() ?: "Usuario",
+                    role = sessionManager.getRole() ?: "user"
+                )
+            )
+        }
+    }
+
     // Destino inicial dinámico
     var currentDestination by remember {
         mutableStateOf(
             when {
                 !isLoggedIn -> AppDestination.LOGIN
-                isAdmin -> AppDestination.USER_MANAGEMENT
-                else -> AppDestination.PROFILE
+                isAdmin -> AppDestination.TV_SEARCH
+                else -> AppDestination.TV_SEARCH
             }
         )
     }
@@ -85,6 +130,7 @@ fun MainApp() {
 
     val performLogout: () -> Unit = {
         sessionManager.clearSession()
+        appRepository.clearSession()
         isLoggedIn = false
         currentUsername = null
         isAdmin = false
@@ -140,15 +186,75 @@ fun MainApp() {
             },
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                // Banner interactivo de Sincronización y Modo Offline (Práctica 5)
+                if (isLoggedIn && currentDestination != AppDestination.LOGIN && currentDestination != AppDestination.REGISTER) {
+                    val isOnline by appRepository.isOnlineFlow.collectAsState()
+                    var isSyncing by remember { mutableStateOf(false) }
+                    var pendingCount by remember { mutableStateOf(appRepository.cache.pendingOfflineActionsCount()) }
+                    var lastSync by remember { mutableStateOf(appRepository.cache.lastSyncTimestamp) }
+
+                    LaunchedEffect(isOnline, isSyncing, currentDestination) {
+                        pendingCount = appRepository.cache.pendingOfflineActionsCount()
+                        lastSync = appRepository.cache.lastSyncTimestamp
+                    }
+
+                    SyncBanner(
+                        isOnline = isOnline,
+                        lastSyncTimestamp = lastSync,
+                        pendingActionsCount = pendingCount,
+                        isSyncing = isSyncing,
+                        onSyncClick = {
+                            isSyncing = true
+                            coroutineScope.launch {
+                                val res = appRepository.syncPendingOfflineActions()
+                                pendingCount = appRepository.cache.pendingOfflineActionsCount()
+                                lastSync = appRepository.cache.lastSyncTimestamp
+                                isSyncing = false
+                                val count = res.getOrDefault(0)
+                                val msg = if (res.isSuccess) {
+                                    if (count > 0) "Sincronizados $count cambios pendientes" else "Todo al día"
+                                } else {
+                                    "Error al sincronizar"
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onToggleConnectivity = {
+                            val newOnline = !isOnline
+                            appRepository.setNetworkConnectivity(newOnline)
+                            pendingCount = appRepository.cache.pendingOfflineActionsCount()
+                            val msg = if (newOnline) "🟢 Conectado" else "🟠 Modo Offline simulado"
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
                 when (currentDestination) {
                     AppDestination.LOGIN -> {
                         LoginScreen(
+                            repository = appRepository,
                             onLoginSuccess = { username, role ->
+                                val token = appRepository.currentToken ?: "session_active"
+                                sessionManager.saveAuthSession(
+                                    token = token,
+                                    userId = appRepository.currentUser?.id ?: 1,
+                                    username = username,
+                                    role = role
+                                )
                                 isLoggedIn = true
                                 currentUsername = username
                                 isAdmin = role.equals("admin", ignoreCase = true)
-                                currentDestination = if (isAdmin) AppDestination.USER_MANAGEMENT else AppDestination.PROFILE
+                                currentDestination = AppDestination.TV_SEARCH
                             },
                             onNavigateToRegister = {
                                 currentDestination = AppDestination.REGISTER
@@ -158,6 +264,37 @@ fun MainApp() {
 
                     AppDestination.REGISTER -> {
                         RegisterScreen(
+                            repository = appRepository,
+                            onNavigateToLogin = {
+                                currentDestination = AppDestination.LOGIN
+                            }
+                        )
+                    }
+
+                    AppDestination.TV_SEARCH -> {
+                        TvSearchScreen(
+                            repository = appRepository
+                        )
+                    }
+
+                    AppDestination.FAVORITES -> {
+                        FavoritesScreen(
+                            repository = appRepository,
+                            onNavigateToSearch = {
+                                currentDestination = AppDestination.TV_SEARCH
+                            }
+                        )
+                    }
+
+                    AppDestination.RECOMMENDATIONS -> {
+                        RecommendationsScreen(
+                            repository = appRepository
+                        )
+                    }
+
+                    AppDestination.TASKS -> {
+                        TaskCrudScreen(
+                            repository = appRepository,
                             onNavigateToLogin = {
                                 currentDestination = AppDestination.LOGIN
                             }
@@ -184,15 +321,22 @@ fun MainApp() {
                         }
                     }
 
-                    AppDestination.TASKS -> {
-                        TaskCrudScreen(
-                            onNavigateToLogin = {
-                                currentDestination = AppDestination.LOGIN
-                            }
-                        )
+                    AppDestination.ADMIN_AUDIT -> {
+                        if (isAdmin) {
+                            AdminAuditScreen(
+                                repository = appRepository
+                            )
+                        } else {
+                            ProfileScreen(
+                                onProfileUpdated = { updatedUsername ->
+                                    currentUsername = updatedUsername
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
 }

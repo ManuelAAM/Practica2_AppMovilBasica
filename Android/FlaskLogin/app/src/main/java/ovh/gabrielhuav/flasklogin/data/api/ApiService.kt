@@ -30,10 +30,13 @@ interface ApiService {
     suspend fun getProfile(): Response<SingleUserResponse>
 
     @PUT("profile")
-    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<AuthResponse>
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<SingleUserResponse>
 
     @GET("users")
     suspend fun getAllUsers(): Response<UsersListResponse>
+
+    @GET("users")
+    suspend fun getUsers(): Response<UsersListResponse>
 
     @GET("users/{id}")
     suspend fun getUserById(@Path("id") id: Int): Response<SingleUserResponse>
@@ -41,11 +44,20 @@ interface ApiService {
     @POST("users")
     suspend fun adminCreateUser(@Body request: AdminCreateUserRequest): Response<SingleUserResponse>
 
+    @POST("users")
+    suspend fun createUser(@Body request: AdminCreateUserRequest): Response<SingleUserResponse>
+
     @PUT("users/{id}")
     suspend fun adminUpdateUser(@Path("id") id: Int, @Body request: AdminUpdateUserRequest): Response<SingleUserResponse>
 
+    @PUT("users/{id}")
+    suspend fun updateUser(@Path("id") id: Int, @Body request: AdminUpdateUserRequest): Response<SingleUserResponse>
+
     @DELETE("users/{id}")
     suspend fun adminDeleteUser(@Path("id") id: Int): Response<Map<String, String>>
+
+    @DELETE("users/{id}")
+    suspend fun deleteUser(@Path("id") id: Int): Response<Map<String, String>>
 
     @GET("tasks")
     suspend fun getTasks(): Response<TasksListResponse>

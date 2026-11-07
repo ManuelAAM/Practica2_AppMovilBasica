@@ -13,7 +13,7 @@ actual fun createPlatformHttpClient(): HttpClient {
     return HttpClient(OkHttp) {
         engine {
             config {
-                connectTimeout(15, TimeUnit.SECONDS)
+                connectTimeout(5, TimeUnit.SECONDS)
                 readTimeout(15, TimeUnit.SECONDS)
             }
         }

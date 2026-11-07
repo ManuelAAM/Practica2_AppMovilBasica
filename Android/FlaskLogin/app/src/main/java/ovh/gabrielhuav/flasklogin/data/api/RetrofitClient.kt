@@ -9,7 +9,17 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:5000/"
+    fun getBaseUrl(): String {
+        val isEmulator = (android.os.Build.FINGERPRINT.startsWith("generic")
+                || android.os.Build.FINGERPRINT.startsWith("unknown")
+                || android.os.Build.MODEL.contains("google_sdk")
+                || android.os.Build.MODEL.contains("Emulator")
+                || android.os.Build.MODEL.contains("Android SDK built for x86")
+                || android.os.Build.MANUFACTURER.contains("Genymotion")
+                || (android.os.Build.BRAND.startsWith("generic") && android.os.Build.DEVICE.startsWith("generic"))
+                || "google_sdk" == android.os.Build.PRODUCT)
+        return if (isEmulator) "http://10.0.2.2:5000/" else "http://127.0.0.1:5000/"
+    }
 
     private var apiService: ApiService? = null
 
@@ -22,12 +32,12 @@ object RetrofitClient {
             val okHttpClient = OkHttpClient.Builder()
                 .addInterceptor(AuthInterceptor(context.applicationContext))
                 .addInterceptor(loggingInterceptor)
-                .connectTimeout(15, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .build()
 
             val retrofit = Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(getBaseUrl())
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "ovh.gabrielhuav.flasklogin"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ovh.gabrielhuav.flasklogin"
@@ -32,11 +32,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -67,6 +70,9 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+
+    // Carga de imágenes remotas y caché offline de pósters
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

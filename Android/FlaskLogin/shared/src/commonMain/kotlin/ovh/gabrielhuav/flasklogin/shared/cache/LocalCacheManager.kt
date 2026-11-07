@@ -39,6 +39,61 @@ class LocalCacheManager {
     var activeToken: String? = null
     var lastSyncTimestamp: String = "No sincronizado aún"
 
+    init {
+        // Pre-cargar series en caché local para demostrar funcionamiento offline inmediato (Práctica 5)
+        cacheTvShow(
+            TvShow(
+                id = 169,
+                name = "Breaking Bad",
+                type = "Scripted",
+                language = "English",
+                genres = listOf("Drama", "Crime", "Thriller"),
+                status = "Ended",
+                premiered = "2008-01-20",
+                rating = ovh.gabrielhuav.flasklogin.shared.model.TvRating(average = 9.2),
+                image = ovh.gabrielhuav.flasklogin.shared.model.TvImage(
+                    medium = "https://static.tvmaze.com/uploads/images/medium_portrait/0/2400.jpg",
+                    original = "https://static.tvmaze.com/uploads/images/original_untouched/0/2400.jpg"
+                ),
+                summary = "<p>Un profesor de química diagnosticado con cáncer recurre a la fabricación y venta de metanfetamina para asegurar el futuro de su familia.</p>"
+            )
+        )
+        cacheTvShow(
+            TvShow(
+                id = 2993,
+                name = "Stranger Things",
+                type = "Scripted",
+                language = "English",
+                genres = listOf("Drama", "Fantasy", "Science-Fiction"),
+                status = "Running",
+                premiered = "2016-07-15",
+                rating = ovh.gabrielhuav.flasklogin.shared.model.TvRating(average = 8.5),
+                image = ovh.gabrielhuav.flasklogin.shared.model.TvImage(
+                    medium = "https://static.tvmaze.com/uploads/images/medium_portrait/394/986248.jpg",
+                    original = "https://static.tvmaze.com/uploads/images/original_untouched/394/986248.jpg"
+                ),
+                summary = "<p>Cuando un niño desaparece en un pequeño pueblo, sus amigos descubren un misterio relacionado con experimentos secretos y fuerzas sobrenaturales.</p>"
+            )
+        )
+        cacheTvShow(
+            TvShow(
+                id = 82,
+                name = "Game of Thrones",
+                type = "Scripted",
+                language = "English",
+                genres = listOf("Drama", "Adventure", "Fantasy"),
+                status = "Ended",
+                premiered = "2011-04-17",
+                rating = ovh.gabrielhuav.flasklogin.shared.model.TvRating(average = 8.9),
+                image = ovh.gabrielhuav.flasklogin.shared.model.TvImage(
+                    medium = "https://static.tvmaze.com/uploads/images/medium_portrait/190/476117.jpg",
+                    original = "https://static.tvmaze.com/uploads/images/original_untouched/190/476117.jpg"
+                ),
+                summary = "<p>Nueve familias nobles luchan por el control de las tierras de Poniente, mientras un antiguo enemigo regresa tras milenios.</p>"
+            )
+        )
+    }
+
     // ----------------------------------------------------------------------
     // Tareas (CRUD Local / Offline)
     // ----------------------------------------------------------------------

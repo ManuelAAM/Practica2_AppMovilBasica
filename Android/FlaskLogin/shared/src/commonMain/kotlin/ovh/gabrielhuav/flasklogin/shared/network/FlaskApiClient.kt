@@ -38,68 +38,108 @@ class FlaskApiClient(
         return "Authorization" to cleanToken
     }
 
+    fun candidateHosts(): List<String> {
+        return listOf(baseUrl, "http://127.0.0.1:5000", "http://10.0.2.2:5000", "http://192.168.1.75:5000").distinct()
+    }
+
+    private suspend fun <T> executeWithHostFailover(action: suspend (currentBaseUrl: String) -> Result<T>): Result<T> {
+        val candidates = candidateHosts()
+        var lastFailure: Result<T>? = null
+
+        for (candidate in candidates) {
+            val res = action(candidate)
+            if (res.isSuccess) {
+                if (baseUrl != candidate) {
+                    baseUrl = candidate
+                }
+                return res
+            }
+            val ex = res.exceptionOrNull()
+            if (ex != null && !isNetworkConnectionError(ex)) {
+                return res
+            }
+            lastFailure = res
+        }
+        return lastFailure ?: Result.failure(Exception("No se pudo establecer conexión con el servidor Flask"))
+    }
+
+    private fun isNetworkConnectionError(e: Throwable): Boolean {
+        val msg = e.message?.lowercase() ?: ""
+        return msg.contains("timeout") ||
+               msg.contains("connect") ||
+               msg.contains("failed to connect") ||
+               msg.contains("unreachable") ||
+               msg.contains("refused")
+    }
+
     // ----------------------------------------------------------------------
     // Autenticación y Perfil
     // ----------------------------------------------------------------------
     suspend fun login(username: String, password: String): Result<AuthResponse> {
-        return try {
-            val response = client.post("$baseUrl/login") {
-                contentType(ContentType.Application.Json)
-                setBody(buildJsonObject {
-                    put("username", username)
-                    put("password", password)
-                })
+        return executeWithHostFailover { host ->
+            try {
+                val response = client.post("$host/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(buildJsonObject {
+                        put("username", username)
+                        put("password", password)
+                    })
+                }
+                if (response.status == HttpStatusCode.OK) {
+                    Result.success(response.body())
+                } else {
+                    val errorBody: AuthResponse = response.body()
+                    Result.failure(Exception(errorBody.message ?: "Credenciales inválidas"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-            if (response.status == HttpStatusCode.OK) {
-                Result.success(response.body())
-            } else {
-                val errorBody: AuthResponse = response.body()
-                Result.failure(Exception(errorBody.message ?: "Credenciales inválidas"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
     suspend fun register(username: String, password: String): Result<AuthResponse> {
-        return try {
-            val response = client.post("$baseUrl/register") {
-                contentType(ContentType.Application.Json)
-                setBody(buildJsonObject {
-                    put("username", username)
-                    put("password", password)
-                })
+        return executeWithHostFailover { host ->
+            try {
+                val response = client.post("$host/register") {
+                    contentType(ContentType.Application.Json)
+                    setBody(buildJsonObject {
+                        put("username", username)
+                        put("password", password)
+                    })
+                }
+                if (response.status == HttpStatusCode.Created || response.status == HttpStatusCode.OK) {
+                    Result.success(response.body())
+                } else {
+                    val errorBody: AuthResponse = response.body()
+                    Result.failure(Exception(errorBody.message ?: "Error al registrar usuario"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-            if (response.status == HttpStatusCode.Created || response.status == HttpStatusCode.OK) {
-                Result.success(response.body())
-            } else {
-                val errorBody: AuthResponse = response.body()
-                Result.failure(Exception(errorBody.message ?: "Error al registrar usuario"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
     suspend fun googleAuth(request: GoogleAuthRequest): Result<AuthResponse> {
-        return try {
-            val response = client.post("$baseUrl/auth/google") {
-                contentType(ContentType.Application.Json)
-                setBody(buildJsonObject {
-                    put("email", request.email)
-                    put("name", request.name)
-                    put("google_id", request.googleId)
-                    request.idToken?.let { put("id_token", it) }
-                })
+        return executeWithHostFailover { host ->
+            try {
+                val response = client.post("$host/auth/google") {
+                    contentType(ContentType.Application.Json)
+                    setBody(buildJsonObject {
+                        put("email", request.email)
+                        put("name", request.name)
+                        put("google_id", request.googleId)
+                        request.idToken?.let { put("id_token", it) }
+                    })
+                }
+                if (response.status == HttpStatusCode.OK) {
+                    Result.success(response.body())
+                } else {
+                    val errorBody: AuthResponse = response.body()
+                    Result.failure(Exception(errorBody.message ?: "Error al autenticar con Google"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-            if (response.status == HttpStatusCode.OK) {
-                Result.success(response.body())
-            } else {
-                val errorBody: AuthResponse = response.body()
-                Result.failure(Exception(errorBody.message ?: "Error al autenticar con Google"))
-            }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 

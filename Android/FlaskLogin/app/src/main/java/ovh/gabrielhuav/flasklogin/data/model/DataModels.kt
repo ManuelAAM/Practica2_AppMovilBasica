@@ -26,6 +26,7 @@ data class UserDto(
 data class SingleUserResponse(
     val status: String,
     val message: String? = null,
+    val token: String? = null,
     val user: UserDto? = null
 )
 
