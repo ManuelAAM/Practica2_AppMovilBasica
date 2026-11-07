@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
@@ -57,7 +58,8 @@ fun AppDrawerContent(
     currentUsername: String?,
     isAdmin: Boolean,
     onNavigate: (AppDestination) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onOpenNetworkStatus: () -> Unit = {}
 ) {
     ModalDrawerSheet {
         // Cabecera del Drawer
@@ -167,6 +169,15 @@ fun AppDrawerContent(
                 label = { Text("Tareas CRUD (Backend P2)") },
                 selected = currentDestination == AppDestination.TASKS,
                 onClick = { onNavigate(AppDestination.TASKS) },
+                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            )
+
+            // Opción: Estado de Red y Sincronización (Offline)
+            NavigationDrawerItem(
+                icon = { Icon(Icons.Default.CloudDone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                label = { Text("Estado de Red y Sync") },
+                selected = false,
+                onClick = onOpenNetworkStatus,
                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
             )
 
