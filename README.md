@@ -1,576 +1,519 @@
 # INSTITUTO POLITÉCNICO NACIONAL
 ## Escuela Superior de Cómputo (ESCOM)
 ### Ingeniería en Sistemas Computacionales
+#### Academia de Ingeniería de Software — Desarrollo de Aplicaciones Móviles Nativas
 
 ---
 
-| **Materia** | Desarrollo de aplicaciones móviles nativas |
+| **Campo** | **Detalle Institucional y de Evaluación** |
 |:---|:---|
-| **Práctica** | **Práctica 2:** Aplicación móvil básica para operaciones CRUD con un servicio REST |
-| **Alumno(a)** | *Aragón Martínez Manuel Alejandro* |
-| **Boleta** | *2023630411* |
-| **Grupo** | 7CV4 |
-| **Profesor** | *Gabriel Hurtado Avilés* |
-| **Fecha de Entrega** | 18 de septiembre de 2026 |
+| **Unidad Académica** | Escuela Superior de Cómputo (ESCOM - IPN) |
+| **Materia** | Desarrollo de Aplicaciones Móviles Nativas |
+| **Práctica Evaluada** | **Práctica 5:** Consulta de bases de datos vía APIs y funcionalidades específicas en aplicaciones multiplataforma (Android e iOS) — *Continuación y Expansión Formal de la Práctica 2* |
+| **Alumno(a)** | **Aragón Martínez Manuel Alejandro** |
+| **Boleta** | **2023630411** |
+| **Grupo** | **7CV4** |
+| **Profesor Titular** | **M. en C. Gabriel Hurtado Avilés** |
+| **Ciclo Escolar** | 2027-1 |
+| **Fecha de Entrega** | 06 de noviembre de 2026 |
+| **Repositorio GitHub** | [https://github.com/ManuelAAM/Practica2_AppMovilBasica](https://github.com/ManuelAAM/Practica2_AppMovilBasica) |
+| **Commit Base (P2)** | [`da4a1c7881bce0326d5466046faa9875d09ccbfb`](https://github.com/ManuelAAM/Practica2_AppMovilBasica/commit/da4a1c7881bce0326d5466046faa9875d09ccbfb) |
 
 ---
 
-## 1. Introducción
+## 1. Introducción y Continuidad con la Práctica 2
 
-El desarrollo contemporáneo de aplicaciones móviles demanda una arquitectura desacoplada, donde la interfaz de usuario nativa (frontend) interactúa de forma eficiente, reactiva y segura con servicios del lado del servidor (backend) a través de interfaces de programación de aplicaciones bajo el estándar REST (*Representational State Transfer*).
+### 1.1. Origen del Proyecto y Continuidad Permitida
+De conformidad con los lineamientos oficiales de la **Práctica 5**, este proyecto retoma formalmente la solución desarrollada y evaluada en la **Práctica 2** (*"Aplicación móvil básica para operaciones CRUD con un servicio REST"*), respetando íntegramente su arquitectura base, modelos de datos, endpoints existentes y diseño visual original, para evolucionarla hacia una arquitectura multiplataforma moderna, desacoplada y robusta.
 
-El presente proyecto implementa un ecosistema cliente-servidor compuesto por:
-1. **Un Backend REST Dockerizado**: Desarrollado en Python con el microframework **Flask**, persistencia relacional con **Flask-SQLAlchemy** sobre SQLite, seguridad criptográfica mediante **Flask-Bcrypt** para el hashing de contraseñas con sal y un sistema de sesiones seguras mediante tokens firmados **JWT (JSON Web Tokens)** con expiración temporal.
-2. **Una Aplicación Móvil Nativa Android**: Desarrollada en **Kotlin** utilizando el toolkit declarativo moderno **Jetpack Compose** bajo directrices de diseño **Material 3**. La aplicación integra un menú de navegación tipo cajón lateral (*Navigation Drawer*) para transicionar fluidamente entre pantallas de Inicio de Sesión, Registro de Usuario y Gestión CRUD de Tareas (*Tasks*), empleando **Retrofit** y **OkHttp** con interceptores automáticos para el consumo de la API REST.
+* **Repositorio Base Oficial:** [https://github.com/ManuelAAM/Practica2_AppMovilBasica](https://github.com/ManuelAAM/Practica2_AppMovilBasica)
+* **Objetivo de la Práctica 5:** Desarrollar una solución móvil multiplataforma que consuma una base de datos propia vía API REST y una API pública externa gratuita, integrando persistencia local offline-first con sincronización y resolución de conflictos, autenticación nativa y de terceros (Google OAuth), un motor de recomendaciones determinista explicable, y control de acceso basado en roles (RBAC) con auditoría administrativa.
 
-### 1.1. Origen del Proyecto y Aportaciones Propias
+### 1.2. Cuadro Comparativo: Componentes Reutilizados de P2 vs. Mejoras Añadidas en P5
 
-> [!NOTE]
-> **Declaración de Clonación y Base de Trabajo:**
-> Este proyecto toma como punto de partida el repositorio de ejemplo proporcionado por la cátedra de Desarrollo de Aplicaciones Móviles: [gabrielhuav/Flask-Compose-Login-API](https://github.com/gabrielhuav/Flask-Compose-Login-API).
-> 
-> Sobre dicha base inicial —la cual contenía una lógica deliberadamente incompleta y un modelo básico— se implementó el sistema de sesiones seguras por tokens JWT, las cuatro operaciones CRUD sobre el recurso Tareas, la persistencia híbrida, la suite de pruebas unitarias, la arquitectura cliente completa en Jetpack Compose (Material 3) y la documentación requerida.
-
-#### Archivos Modificados respecto al Repositorio Base
-| Archivo | Ruta | Modificaciones Realizadas |
+| Componente | Práctica 2 (Línea Base Reutilizada) | Práctica 5 (Ampliación Multiplataforma KMP) |
 |:---|:---|:---|
-| `app.py` | `Docker-Flask/ORM/` | Se implementó el control de acceso basado en roles (`user` y `admin`), el decorador `@admin_required`, endpoints para gestión de perfil propio (`/profile`) y CRUD administrativo de cuentas (`/users`), seeder automático de la cuenta administrador (`admin` / `Admin123*`), el modelo relacional `Task` (Tareas) con CRUD completo, decorador `@token_required` con JWT (24h) y arquitectura híbrida con fallback automático entre PostgreSQL 17 y SQLite. |
-| `docker-compose.yml` | `Docker-Flask/ORM/` | Se configuró una arquitectura multicontenedor añadiendo el servicio de base de datos `postgres:17` (`postgres17_7CV4_sep2026`) con volumen persistente en `./data`, puerto 5432, inyección de variables de entorno y enlace de red con el servicio `web`. |
-| `requirements.txt` | `Docker-Flask/ORM/` | Se agregaron las librerías `PyJWT` (manejo de tokens firmados), `python-dotenv` (variables de entorno) y `psycopg2-binary` (controlador de conexión para PostgreSQL). |
-| `build.gradle.kts` / `libs.versions.toml` | `Android/FlaskLogin/` | Se agregaron dependencias de `Retrofit 2`, `OkHttp 3`, `converter-gson`, `material-icons-extended` y `lifecycle-viewmodel-compose`. |
-| `AndroidManifest.xml` | `Android/FlaskLogin/` | Se declaró el permiso de red `<uses-permission android:name="android.permission.INTERNET" />` y se habilitó `android:usesCleartextTraffic="true"` para permitir peticiones HTTP en desarrollo local. |
-| `MainActivity.kt` | `Android/FlaskLogin/` | Se rediseñó el contenedor principal de la aplicación, implementando el `ModalNavigationDrawer`, la `TopAppBar` con menú dinámico, control de estado reactivo de sesión y navegación condicionada por roles (Perfil de Usuario, Gestión de Usuarios para Administradores y CRUD de Tareas). |
-| `User.kt` | `Android/.../data/model/` | Se extendieron las clases de datos con el campo `role`, y se crearon modelos para `UpdateProfileRequest`, `AdminCreateUserRequest`, `AdminUpdateUserRequest`, `UsersListResponse` y `SingleUserResponse`. |
-| `SessionManager.kt` | `Android/.../data/session/` | Se agregó persistencia y consulta del rol del usuario (`isAdmin()`, `getRole()`) y método para actualizar en caliente credenciales locales tras modificar el perfil. |
-| `ApiService.kt` | `Android/.../data/api/` | Se añadieron las llamadas suspendidas para `/profile` (GET, PUT) y los endpoints administrativos de `/users` (GET, POST, PUT, DELETE). |
-| `AppDrawer.kt` | `Android/.../ui/components/` | Se implementó el badge visual de rol (`ADMINISTRADOR` / `USUARIO`) en el encabezado y opciones de navegación dinámicas según privilegios. |
-| `README.md` | Raíz | Reestructuración total con portada formal, marco teórico en palabras propias, catálogo de endpoints con ejemplos JSON, instrucciones paso a paso de Docker y evidencias. |
-
-#### Archivos Nuevos Creados
-| Archivo | Ruta | Propósito en el Proyecto |
-|:---|:---|:---|
-| `.gitignore` | Raíz | Exclusión de secretos (`.env`), base de datos local SQLite, directorio de almacenamiento de Postgres (`data/`) y archivos generados por Gradle (permitiendo explícitamente el APK compilado en `Android/apk/`). |
-| `.env.example` / `.env` | `Docker-Flask/ORM/` | Plantilla de configuración segura y archivo de variables locales para llaves criptográficas y cadenas de conexión a base de datos. |
-| `test_api.py` | `Docker-Flask/ORM/` | Suite automatizada de pruebas unitarias y de integración que valida los 12 escenarios de la API REST (autenticación, roles, perfiles, CRUD admin y tareas). |
-| `ProfileScreen.kt` | `Android/.../ui/screens/` | Pantalla de perfil personal donde el usuario consulta su ID/rol y actualiza su propio nombre de usuario y contraseña. |
-| `UserCrudScreen.kt` | `Android/.../ui/screens/` | Pantalla de administración exclusiva para administradores con listado completo de usuarios, creación de cuentas con rol, edición de credenciales y eliminación protegida. |
-| `Task.kt` | `Android/.../data/model/` | Clases de datos Kotlin (`Data Classes`) para serialización y mapeo de peticiones y respuestas JSON de tareas. |
-| `AuthInterceptor.kt` | `Android/.../data/api/` | Interceptor de red de OkHttp que adjunta automáticamente el encabezado `Authorization: Bearer <token>` en cada petición. |
-| `RetrofitClient.kt` | `Android/.../data/api/` | Singleton cliente de Retrofit con soporte para la IP especial de emulador (`10.0.2.2:5000`) e IP de dispositivo físico. |
-| `LoginScreen.kt` | `Android/.../ui/screens/` | Pantalla de inicio de sesión con formulario, validación, feedback de carga y consumo de la API. |
-| `RegisterScreen.kt` | `Android/.../ui/screens/` | Pantalla de registro de nuevos usuarios con confirmación de contraseñas y redirección automática. |
-| `TaskCrudScreen.kt` | `Android/.../ui/screens/` | Pantalla principal de gestión de tareas con `LazyColumn`, chips de estado y botón flotante de acción. |
-| `TaskDialogs.kt` | `Android/.../ui/components/` | Diálogos modales para Crear, Editar y Confirmar Eliminación de tareas. |
-| `Android/apk/app-debug.apk` | `Android/apk/` | Binario precompilado de la aplicación Android listo para instalación directa vía ADB o emulador sin compilar. |
-| `Android/apk/README.md` | `Android/apk/` | Guía de uso e instalación directa del archivo binario APK. |
-| `docs/img/` | Raíz | Directorio para alojar las capturas de pantalla de evidencia. |
+| **Tecnología Cliente** | Android nativo (Jetpack Compose, JVM pura). | **Kotlin Multiplatform (KMP)** con módulo compartido `:shared` compilable a binarios nativos para Android (AAR / Dalvik) e iOS (Framework nativo en Xcode con backend Darwin). |
+| **Cliente de Red** | Retrofit 2 + OkHttp (solo Android). | **Ktor Client Multiplataforma** con serialización JSON nativa (`kotlinx.serialization`) y motores desacoplados (`OkHttp` en Android, `Darwin` en iOS) con reconexión y failover dinámico de host. |
+| **API REST Propia** | CRUD de Tareas (`Task`), autenticación nativa con Bcrypt y JWT en Flask. | **Backend extendido:** se preservó el CRUD de Tareas de la P2 y se incorporaron los modelos de **Historial (`SearchHistory`)**, **Favoritos (`Favorite`)**, endpoints de **Sincronización en Lote (`/sync/favorites`)** y **Auditoría Administrativa**. |
+| **Consumo de API Externa** | No contemplado. | Integración completa de la API pública gratuita **TVMaze** (`https://api.tvmaze.com`) para consulta de series, metadatos, géneros, calificaciones, imágenes de portada y sinopsis en tiempo real sin requerir API keys privadas. |
+| **Persistencia y Modo Offline** | La aplicación dependía de la conectividad en vivo. | **Persistencia local estructurada y funcionamiento sin internet (100% offline)** con catálogo precargado, estampa de última sincronización y cola de operaciones pendientes (*Offline Action Queue*). |
+| **Sincronización y Conflictos** | Sin manejo de reintentos ni colas. | **Resolución idempotente de conflictos:** las acciones encoladas sin red se procesan en lote sin generar duplicados (*Server-Wins* en catálogo canónico, *Client-Wins* en preferencias de usuario). |
+| **Autenticación Externa** | Solo usuario y contraseña nativo. | Incorporación de **Google Sign-In / OAuth 2.0** con validación y emisión de JWT en el backend Flask (`POST /auth/google`) con selector modal One Tap de cuentas. |
+| **Sistema de Recomendaciones** | No contemplado. | **Motor de recomendaciones determinista y verificable:** regla explicable por afinidad y frecuencia de géneros (*Genre Frequency Matching*) con resolución del caso frío (*Cold Start*). |
+| **Control de Acceso (RBAC)** | Roles `user` y `admin` básicos. | **Auditoría administrativa estricta:** el administrador inspecciona historial y favoritos de cualquier usuario; intentos no autorizados son rechazados con código **403 Forbidden**. |
 
 ---
 
-### 1.2. Marco Tecnológico y Seguridad de Contraseñas
+## 2. Arquitectura de Software del Sistema
 
-#### ¿Qué es Flask y cómo se implementa en esta práctica?
-**Flask** es un microframework web para Python basado en el estándar **WSGI (Web Server Gateway Interface)** y las librerías Werkzeug y Jinja2. A diferencia de frameworks monolíticos como Django, Flask se caracteriza por ser liviano, minimalista y no imponer una estructura rígida de base de datos o autenticación, otorgando control total al desarrollador.
+### 2.1. Desacoplamiento Multiplataforma (Componentes Comunes vs. Nativos)
+La solución implementa una arquitectura limpia y desacoplada basada en el patrón **Repository** y el ecosistema **Kotlin Multiplatform**:
 
-En este proyecto, Flask se implementa como el motor central de la API REST:
-1. **Enrutamiento Declarativo mediante Decoradores**: Rutas como `@app.route('/register', methods=['POST'])` o `@app.route('/tasks', methods=['GET'])` interceptan las solicitudes HTTP entrantes según el método y URL solicitados.
-2. **Serialización JSON Nativa**: A través de `request.get_json()` y la función `jsonify()`, se procesan y devuelven estructuras de datos JSON estrictamente estructuradas con sus respectivos códigos de estado HTTP (200, 201, 400, 401, 404).
-3. **Manejo del Contexto de Aplicación**: Mediante bloques `with app.app_context():`, se gestiona la conexión con el ORM SQLAlchemy y se crea automáticamente el esquema de tablas en la base de datos al iniciar el servicio.
+```
+                                    ┌────────────────────────────────────────────────────────┐
+                                    │                   APLICACIÓN CLIENTE                   │
+                                    │              (Android Jetpack Compose & iOS)           │
+                                    └───────────────┬────────────────────────┬───────────────┘
+                                                    │                        │
+                                    ┌───────────────▼────────┐      ┌────────▼───────────────┐
+                                    │  MÓDULO SHARED (KMP)   │      │ PERSISTENCIA LOCAL     │
+                                    │  - AppRepository       │◄────►│ - Caché de series      │
+                                    │  - RecommendationEngine│      │ - Historial local      │
+                                    │  - LocalCacheManager   │      │ - Cola Offline (Queue) │
+                                    └────────┬────────┬──────┘      └────────────────────────┘
+                                             │        │
+                      ┌──────────────────────▼──┐  ┌──▼──────────────────────────┐
+                      │ KTOR CLIENT (BACKEND)   │  │ KTOR CLIENT (API PÚBLICA)   │
+                      │ - Base: 10.0.2.2/127.0.0.1│  │ - Base: api.tvmaze.com      │
+                      │ - Bearer Token (JWT)    │  │ - Sin llaves privadas       │
+                      └──────────────┬──────────┘  └──────────────┬──────────────┘
+                                     │                            │
+                      ┌──────────────▼──────────┐  ┌──────────────▼──────────────┐
+                      │ BACKEND REST (FLASK)    │  │ TVMAZE REST API             │
+                      │ - Tareas CRUD (P2)      │  │ - Búsqueda en vivo (/search)│
+                      │ - Historial y Favoritos │  │ - Fichas de series (/shows) │
+                      │ - Google OAuth (/auth)  │  │ - Géneros y calificaciones  │
+                      │ - Auditoría RBAC (403)  │  └─────────────────────────────┘
+                      └─────────────────────────┘
+```
 
-#### Seguridad y Encriptación de Contraseñas con Flask-Bcrypt
-Almacenar contraseñas en texto plano o utilizando funciones hash desactualizadas (como MD5 o SHA-1) representa una vulnerabilidad de seguridad inaceptable. Para esta práctica se implementó **`Flask-Bcrypt`**, una biblioteca que utiliza el algoritmo de cifrado por bloques Blowfish adaptado al hashing seguro:
+1. **Módulo Común Multiplataforma (`:shared/src/commonMain`):**
+   * **`AppRepository`:** Fachada unificada que abstrae el origen de datos (red o caché) para la interfaz de usuario.
+   * **`LocalCacheManager`:** Gestor de memoria y persistencia local que implementa el catálogo offline, el almacenamiento de favoritos, el historial de consultas y la cola de acciones pendientes (*Offline Action Queue*).
+   * **`RecommendationEngine`:** Algoritmo matemático determinista para el cálculo de afinidad de series.
+   * **`FlaskApiClient`:** Cliente de red HTTP Ktor desacoplado con soporte de reconexión automática entre localhost (`127.0.0.1`), emulador (`10.0.2.2`) y red local Wi-Fi (`192.168.1.75`).
+   * **Modelos de Datos Multiplataforma:** Entidades serializables compartidas (`TvShow`, `ShowImage`, `Favorite`, `SearchHistory`, `OfflineAction`).
 
-- **Generación Automática de Sal Criptográfica (*Salting*)**: Cada vez que un usuario se registra (`/register`), Bcrypt genera automáticamente una sal pseudoaleatoria única de 128 bits que se concatena con la contraseña antes de aplicar el algoritmo:
-  ```python
-  hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-  ```
-  Esto garantiza que dos usuarios con exactamente la misma contraseña generen hashes completamente distintos, neutralizando por completo los ataques basados en tablas precalculadas (*Rainbow Tables*).
-- **Factor de Coste Adaptativo (*Work Factor / Rounds*)**: Bcrypt es deliberadamente intensivo en cálculo (por defecto 12 rondas iterativas, equivalentes a $2^{12} = 4096$ iteraciones). Este retardo programado es imperceptible para un usuario legítimo al iniciar sesión, pero vuelve matemáticamente inviable cualquier ataque de fuerza bruta masivo o ataque de diccionario offline.
-- **Verificación en Tiempo Constante**: Durante el login (`/login`), se verifica la contraseña suministrada contra el hash almacenado utilizando:
-  ```python
-  bcrypt.check_password_hash(user.password, password)
-  ```
-  Esta función realiza una comparación en tiempo constante, evitando ataques de canal lateral basados en el análisis de tiempos de respuesta (*Timing Attacks*).
+2. **Componentes Nativos Android (`:app/src/main`):**
+   * **Jetpack Compose & Material Design 3:** Interfaz declarativa moderna con modo oscuro, tipografía escalable y animaciones fluidas.
+   * **Coil Image Loading (`AsyncImage`):** Carga y caché asíncrona de imágenes y portadas de series en alta definición.
+   * **Google Identity One Tap Dialog:** Selector visual de cuentas federadas con botón oficial de cuatro colores.
+   * **Detección Automática de Entorno:** Conmutación dinámica de host de conexión entre emulador AVD y dispositivo físico Samsung conectado por USB con `adb reverse`.
 
----
+3. **Componentes Multiplataforma iOS (`:shared/src/iosMain`):**
+   * Compilación a `SharedApp.framework` mediante Kotlin/Native y el motor de red `Darwin` de Ktor, compatible con Swift y Xcode.
 
-### 1.3. Justificación del Stack Tecnológico
-
-
-- **Flask (Python 3.9+)**: Microframework altamente eficiente, ligero y modular. Permite construir endpoints RESTful con mínima sobrecarga y control total sobre el pipeline HTTP y la gestión de cabeceras de autorización.
-- **SQLite + SQLAlchemy ORM**: Abstrae las operaciones de base de datos a objetos de dominio, permitiendo portabilidad absoluta sin dependencias de motores de bases de datos externos pesados. El esquema relacional se genera automáticamente en el arranque.
-- **Flask-Bcrypt**: Implementa el algoritmo de hashing adaptativo Blowfish con sal generada de forma aleatoria, mitigando ataques de fuerza bruta, ataques de tablas arcoíris (*rainbow tables*) y asegurando que ninguna contraseña se almacene o manipule en texto plano.
-- **PyJWT (JSON Web Tokens)**: Mecanismo de autenticación sin estado (*stateless*). Permite proteger endpoints críticos verificando la firma criptográfica HS256 y la validez temporal del token antes de conceder acceso a operaciones de base de datos.
-- **Docker & Docker Compose**: Garantiza la reproducibilidad del entorno de ejecución con paridad absoluta entre desarrollo y producción, encapsulando dependencias, configuraciones de red y variables de entorno.
-- **Kotlin + Jetpack Compose (Material 3)**: Paradigma declarativo nativo para Android que minimiza el código repetitivo, simplifica el manejo de estados visuales (*Loading, Success, Error*) y produce interfaces responsivas, accesibles e intuitivas.
-- **Retrofit 2 + OkHttp 3**: Estándar de la industria en Android para networking. Facilita la serialización/deserialización JSON automática con Gson y el uso de interceptores para inyectar dinámicamente el token `Authorization: Bearer <token>` en peticiones autenticadas.
-
----
-
-## 2. Desarrollo
-
-### 2.1. Fundamentos Teóricos (Ejercicio 2 con palabras propias)
-
-- **Docker**: Es una tecnología de virtualización a nivel de sistema operativo basada en contenedores. A diferencia de las máquinas virtuales tradicionales —que emulan un hardware completo y requieren un sistema operativo invitado completo—, Docker aprovecha las primitivas del núcleo (*kernel*) del sistema operativo anfitrión (como *cgroups* y *namespaces*) para ejecutar procesos en entornos completamente aislados, arrancando en cuestión de milisegundos y consumiendo una fracción de memoria.
-- **Imagen vs. Contenedor**:
-  - *Imagen*: Es una plantilla inmutable de solo lectura que contiene el sistema de archivos base, el código de la aplicación, las bibliotecas y las instrucciones necesarias para su ejecución.
-  - *Contenedor*: Es una instancia viva, ejecutable y efímera de una imagen Docker. Los cambios producidos durante la ejecución se descartan al destruirse el contenedor, a menos que se sincronicen con volúmenes persistentes.
-- **Dockerfile**: Archivo declarativo que enumera paso a paso cómo ensamblar la imagen: imagen base (`FROM`), directorio de trabajo (`WORKDIR`), copia de archivos (`COPY`), instalación de dependencias (`RUN`), puertos expuestos (`EXPOSE`) y el comando de arranque del servicio (`CMD`).
-- **docker-compose.yml**: Archivo de orquestación en formato YAML que permite definir, interconectar y levantar múltiples contenedores, redes virtuales, mapeos de puertos, variables de entorno y volúmenes con un único comando unificado (`docker compose up --build`).
-- **Backend o Servicio REST**: Arquitectura de software que expone capacidades de negocio a través del protocolo HTTP. Emplea verbos estándar (`GET` para consultar, `POST` para crear, `PUT` para actualizar y `DELETE` para eliminar) y comunica los resultados mediante códigos de estado semánticos (200, 201, 400, 401, 404) y cuerpos de datos en formato JSON.
-- **ORM (Object-Relational Mapping) y Base de Datos**: Capa de abstracción que traduce tablas relacionales a clases y registros a instancias de objetos en el lenguaje de programación (en este caso SQLAlchemy). Facilita consultas seguras parametrizadas contra inyección SQL y automatiza las transacciones de base de datos.
-
----
-
-### 2.2. Decisiones Técnicas y de Seguridad
-
-1. **Recurso para Operaciones CRUD (Tareas / Tasks)**:
-   Se seleccionó el recurso **Tareas (`Task`)**, el cual modela una unidad de trabajo que contiene identificador (`id`), título (`title`), descripción opcional (`description`), estado de completitud (`status`: `'pending'` o `'completed'`), marca temporal de creación (`created_at`) y vinculación relacional obligatoria con el usuario propietario (`user_id`).
-2. **Sesiones Seguras con Tokens Firmados (JWT)**:
-   Al autenticarse exitosamente en `/login`, el servidor firma un token JWT mediante el algoritmo simétrico **HS256** utilizando una clave secreta (`SECRET_KEY`). El token tiene un tiempo de expiración programado a **24 horas**. Cada petición hacia endpoints CRUD protegidos requiere el encabezado HTTP:
-   ```http
-   Authorization: Bearer <token_jwt>
-   ```
-   Si el token no se suministra, ha expirado o está alterado, el decorador `@token_required` rechaza la petición inmediatamente con código **401 Unauthorized**.
-3. **Protección Criptográfica de Contraseñas**:
-   Las contraseñas se encriptan al momento del registro mediante una función hash robusta con sal generada aleatoriamente por `Flask-Bcrypt`. La base de datos nunca almacena contraseñas en texto plano.
-4. **Almacenamiento Seguro de Secretos**:
-   Ninguna credencial o secreto sensible reside en duro en el código fuente. Se utiliza el estándar `.env`, cargado mediante `python-dotenv`. Se distribuye en el repositorio el archivo plantilla [.env.example](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Docker-Flask/ORM/.env.example) y se incluye `.env` en el [.gitignore](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/.gitignore).
-5. **Persistencia de Sesión en la App Móvil**:
-   La app Android administra el ciclo de vida de la sesión mediante `SessionManager`, persistiendo el token, nombre de usuario y rol autenticado en `SharedPreferences`. Un interceptor de OkHttp (`AuthInterceptor`) adjunta transparentemente el token en cada petición HTTP hacia la API REST.
-6. **Control de Acceso Basado en Roles (RBAC) y Usuario Administrador**:
-   El sistema implementa dos roles formalmente tipados:
-   - **Rol Usuario Estándar (`user`)**: Puede autenticarse, consultar y modificar su propia información personal (nombre de usuario y contraseña) a través del endpoint `/profile`, además de gestionar sus propias tareas.
-   - **Rol Administrador (`admin`)**: Posee acceso total al sistema. Puede consultar y editar sus propios datos, y ejecutar operaciones CRUD completas sobre todas las cuentas de usuario mediante el recurso `/users` (`GET`, `POST`, `PUT`, `DELETE`).
-   - **Cuenta Administradora Semilla Automática**: Al inicializar la base de datos, el backend verifica la existencia de un usuario con privilegios administrativos. Si no existe, genera automáticamente la cuenta:
-     - **Usuario:** `admin`
-     - **Contraseña:** `Admin123*`
-     - **Rol:** `admin`
-   - **Decorador `@admin_required`**: Valida que el token JWT contenga el atributo `role == 'admin'`. Si un usuario estándar intenta consumir rutas reservadas a administración, el servidor rechaza la solicitud de inmediato con código **403 Forbidden**.
+4. **Componentes Backend (`Docker-Flask/ORM`):**
+   * Microservicio REST escrito en Python 3 con **Flask**, **SQLAlchemy ORM**, **Flask-Bcrypt** y **PyJWT**.
+   * Base de datos relacional SQLite (`site.db`) y contenedorización con **Docker Compose**.
 
 ---
 
-### 2.3. Catálogo Detallado de Endpoints REST
+## 3. Catálogo Completo de Endpoints REST del Backend
+
+Todos los endpoints que demandan autenticación exigen el encabezado HTTP:  
+`Authorization: Bearer <token_jwt>`
 
 | Método | Ruta | Requiere Token | Permisos | Código Éxito | Descripción |
 |:---|:---|:---:|:---:|:---:|:---|
-| `GET` | `/` | No | Público | `200 OK` | Verificación de salud y estado de la API REST |
-| `POST` | `/register` | No | Público | `201 Created` | Registro de nuevos usuarios estándar (`role: user`) |
-| `POST` | `/login` | No | Público | `200 OK` | Autenticación de usuarios, entrega de Token JWT y rol |
-| `GET` | `/profile` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Consulta del perfil y rol del usuario autenticado |
-| `PUT` | `/profile` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Modificación del username o contraseña del usuario propio |
-| `GET` | `/users` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Listado completo de todos los usuarios registrados |
-| `GET` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Consulta detallada de una cuenta de usuario específica |
-| `POST` | `/users` | **Sí (Bearer)** | **Solo Admin** | `201 Created` | Creación de una cuenta con rol asignable (`user`/`admin`) |
-| `PUT` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Modificación administrativa de credenciales o rol |
-| `DELETE` | `/users/<id>` | **Sí (Bearer)** | **Solo Admin** | `200 OK` | Eliminación de usuario (con protección de auto-borrado) |
-| `GET` | `/tasks` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Lectura de todas las tareas del usuario autenticado |
-| `GET` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Lectura de una tarea específica por su identificador |
-| `POST` | `/tasks` | **Sí (Bearer)** | Cualquier Rol | `201 Created` | Creación de una nueva tarea |
-| `PUT` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Actualización de título, descripción o estado de tarea |
-| `DELETE` | `/tasks/<id>` | **Sí (Bearer)** | Cualquier Rol | `200 OK` | Eliminación de una tarea de la base de datos |
-
-#### Ejemplos de Peticiones y Respuestas
-
-##### 1. Registro de Usuario (`POST /register`)
-```json
-// Petición (Body JSON)
-{
-  "username": "alumno_escom",
-  "password": "PasswordSeguro2026*"
-}
-
-// Respuesta Exitosa (201 Created)
-{
-  "status": "success",
-  "message": "Usuario creado exitosamente",
-  "user_id": 2,
-  "username": "alumno_escom",
-  "role": "user"
-}
-
-// Error: Usuario Duplicado (400 Bad Request)
-{
-  "status": "error",
-  "message": "El nombre de usuario ya está registrado"
-}
-```
-
-##### 2. Inicio de Sesión (`POST /login`)
-```json
-// Petición (Body JSON)
-{
-  "username": "admin",
-  "password": "Admin123*"
-}
-
-// Respuesta Exitosa (200 OK)
-{
-  "status": "success",
-  "message": "Inicio de sesión exitoso",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user_id": 1,
-  "username": "admin",
-  "role": "admin"
-}
-
-// Error: Credenciales Incorrectas (401 Unauthorized)
-{
-  "status": "error",
-  "message": "Credenciales inválidas"
-}
-```
-
-##### 3. Consultar y Modificar Perfil Propio (`GET` y `PUT /profile`)
-```http
-Authorization: Bearer <token_jwt>
-```
-```json
-// GET /profile -> Respuesta Exitosa (200 OK)
-{
-  "status": "success",
-  "user": {
-    "id": 2,
-    "username": "alumno_escom",
-    "role": "user"
-  }
-}
-
-// PUT /profile -> Petición (Body JSON para cambiar datos propios)
-{
-  "username": "alumno_escom_actualizado",
-  "password": "NuevaPassword2026*"
-}
-
-// PUT /profile -> Respuesta Exitosa (200 OK)
-{
-  "status": "success",
-  "message": "Perfil actualizado exitosamente",
-  "user": {
-    "id": 2,
-    "username": "alumno_escom_actualizado",
-    "role": "user"
-  }
-}
-```
-
-##### 4. CRUD de Usuarios por Administrador (`/users`)
-```http
-Authorization: Bearer <token_jwt_de_admin>
-```
-```json
-// GET /users -> Listar todos los usuarios (200 OK)
-{
-  "status": "success",
-  "users": [
-    { "id": 1, "username": "admin", "role": "admin" },
-    { "id": 2, "username": "alumno_escom", "role": "user" }
-  ]
-}
-
-// POST /users -> Crear usuario desde panel administrativo (201 Created)
-// Petición:
-{
-  "username": "nuevo_docente",
-  "password": "Password123*",
-  "role": "user"
-}
-// Respuesta:
-{
-  "status": "success",
-  "message": "Usuario creado exitosamente",
-  "user": {
-    "id": 3,
-    "username": "nuevo_docente",
-    "role": "user"
-  }
-}
-
-// PUT /users/3 -> Modificar credenciales o rol de un usuario (200 OK)
-// Petición:
-{
-  "role": "admin"
-}
-// Respuesta:
-{
-  "status": "success",
-  "message": "Usuario actualizado exitosamente",
-  "user": {
-    "id": 3,
-    "username": "nuevo_docente",
-    "role": "admin"
-  }
-}
-
-// DELETE /users/3 -> Eliminar usuario (200 OK)
-{
-  "status": "success",
-  "message": "Usuario eliminado exitosamente"
-}
-
-// Error si un usuario no administrador intenta acceder (403 Forbidden):
-{
-  "status": "error",
-  "message": "Acceso denegado: se requieren permisos de administrador"
-}
-```
-
-##### 5. Crear Tarea (`POST /tasks`)
-```http
-Authorization: Bearer <token_jwt>
-Content-Type: application/json
-```
-```json
-// Petición
-{
-  "title": "Estudiar para examen de Aplicaciones Móviles",
-  "description": "Repasar Jetpack Compose y Retrofit",
-  "status": "pending"
-}
-
-// Respuesta Exitosa (201 Created)
-{
-  "status": "success",
-  "message": "Tarea creada exitosamente",
-  "task": {
-    "id": 1,
-    "title": "Estudiar para examen de Aplicaciones Móviles",
-    "description": "Repasar Jetpack Compose y Retrofit",
-    "status": "pending",
-    "created_at": "2026-09-15 10:05:00",
-    "user_id": 1
-  }
-}
-```
-
-##### 6. Listar Tareas (`GET /tasks`)
-```json
-// Respuesta Exitosa (200 OK)
-{
-  "status": "success",
-  "tasks": [
-    {
-      "id": 1,
-      "title": "Estudiar para examen de Aplicaciones Móviles",
-      "description": "Repasar Jetpack Compose y Retrofit",
-      "status": "pending",
-      "created_at": "2026-09-15 10:05:00",
-      "user_id": 1
-    }
-  ]
-}
-```
-
-##### 7. Actualizar y Eliminar Tarea (`PUT` y `DELETE /tasks/1`)
-```json
-// PUT /tasks/1 -> Petición
-{
-  "status": "completed"
-}
-
-// PUT /tasks/1 -> Respuesta (200 OK)
-{
-  "status": "success",
-  "message": "Tarea actualizada exitosamente"
-}
-
-// DELETE /tasks/1 -> Respuesta (200 OK)
-{
-  "status": "success",
-  "message": "Tarea eliminada exitosamente"
-}
-```
+| `GET` | `/` | No | Público | `200 OK` | Verificación de salud y versión de la API REST (5.0.0). |
+| `POST` | `/register` | No | Público | `201 Created` | Registro de usuario nuevo con contraseña encriptada en Bcrypt con sal aleatoria. |
+| `POST` | `/login` | No | Público | `200 OK` | Inicio de sesión tradicional y entrega de JWT (24h de validez). |
+| `POST` | `/auth/google` | No | Público | `200 OK` | Autenticación OAuth con Google: vinculación de cuenta y emisión de JWT. |
+| `GET` | `/profile` | Sí | Cualquier Rol | `200 OK` | Consulta del perfil propio del usuario autenticado. |
+| `PUT` | `/profile` | Sí | Cualquier Rol | `200 OK` | Modificación de username o contraseña propia. |
+| `GET` | `/tasks` | Sí | Cualquier Rol | `200 OK` | Lectura de tareas del usuario autenticado (CRUD heredado de P2). |
+| `POST` | `/tasks` | Sí | Cualquier Rol | `201 Created` | Creación de nueva tarea en base de datos. |
+| `PUT` | `/tasks/<id>` | Sí | Cualquier Rol | `200 OK` | Actualización de título, descripción o estado de tarea. |
+| `DELETE` | `/tasks/<id>` | Sí | Cualquier Rol | `200 OK` | Eliminación de una tarea. |
+| `GET` | `/history` | Sí | Cualquier Rol | `200 OK` | Consulta del historial de búsquedas de series del usuario. |
+| `POST` | `/history` | Sí | Cualquier Rol | `201 Created` | Registro de un término buscado en el historial. |
+| `DELETE` | `/history` | Sí | Cualquier Rol | `200 OK` | Limpieza del historial de búsquedas del usuario. |
+| `GET` | `/favorites` | Sí | Cualquier Rol | `200 OK` | Consulta del catálogo de series favoritas guardadas. |
+| `POST` | `/favorites` | Sí | Cualquier Rol | `201 Created` | Adición idempotente de una serie a favoritos. |
+| `DELETE` | `/favorites/<id>` | Sí | Cualquier Rol | `200 OK` | Eliminación de una serie de favoritos. |
+| `POST` | `/sync/favorites` | Sí | Cualquier Rol | `200 OK` | Sincronización en lote de la cola offline sin duplicados. |
+| `GET` | `/sync/status` | Sí | Cualquier Rol | `200 OK` | Consulta de la estampa de tiempo del servidor y métricas. |
+| `GET` | `/admin/users/<id>/history` | Sí | **Solo Admin** | `200 OK` | Auditoría administrativa del historial (**403 Forbidden si no es admin**). |
+| `GET` | `/admin/users/<id>/favorites` | Sí | **Solo Admin** | `200 OK` | Auditoría administrativa de favoritos (**403 Forbidden si no es admin**). |
 
 ---
 
-### 2.4. Guía de Despliegue y Ejecución del Backend
+## 4. Modelo de Datos Relacional y Entidades
 
-#### Requisitos Previos
-- Tener instalado **Docker Desktop** (con motor Linux activo) o **Python 3.9+** si se desea ejecución directa.
+El backend estructura sus datos mediante SQLAlchemy ORM en SQLite (`site.db`), garantizando integridad referencial mediante claves foráneas y restricciones de unicidad:
 
-#### Paso 1: Configuración de Variables de Entorno
+```
+ ┌───────────────────────────┐           ┌───────────────────────────┐
+ │           USER            │1         *│           TASK            │
+ ├───────────────────────────┼───────────┼───────────────────────────┤
+ │ id: Integer (PK)          │           │ id: Integer (PK)          │
+ │ username: String(80) (UQ) │           │ user_id: Integer (FK)     │
+ │ password: String(255)     │           │ title: String(120)        │
+ │ role: String(20) [user/ad]│           │ description: Text         │
+ │ created_at: DateTime      │           │ completed: Boolean        │
+ └─────────────┬─────────────┘           │ created_at: DateTime      │
+               │1                        └───────────────────────────┘
+               ├─────────────────────────┐
+               │*                        │*
+ ┌─────────────▼─────────────┐ ┌─────────▼─────────────────┐
+ │       SEARCH_HISTORY      │ │         FAVORITE          │
+ ├───────────────────────────┤ ├───────────────────────────┤
+ │ id: Integer (PK)          │ │ id: Integer (PK)          │
+ │ user_id: Integer (FK)     │ │ user_id: Integer (FK)     │
+ │ query: String(255)        │ │ show_id: Integer          │
+ │ category: String(50)      │ │ name: String(255)         │
+ │ timestamp: DateTime       │ │ genres: String(255)       │
+ └───────────────────────────┘ │ rating: Float             │
+                               │ image_url: String(512)    │
+                               │ summary: Text             │
+                               │ created_at: DateTime      │
+                               │ UQ(user_id, show_id)      │
+                               └───────────────────────────┘
+```
+
+* **Restricción de Unicidad `UQ(user_id, show_id)`:** Asegura a nivel de motor relacional que un mismo usuario jamás pueda tener duplicada una misma serie favorita, garantizando la idempotencia durante las sincronizaciones en lote.
+
+---
+
+## 5. Seguridad Criptográfica, Google OAuth y Control de Acceso (RBAC)
+
+El sistema implementa una arquitectura de seguridad por capas que garantiza la confidencialidad, autenticidad e integridad de la información en todo momento:
+
+```
+                            FLUJO DE AUTORIZACIÓN Y CONTROL RBAC (403 FORBIDDEN)
+
+ [ Cliente Móvil / Atacante ]               [ API Gateway / Flask ]              [ Base de Datos SQLite ]
+              │                                        │                                    │
+              │── 1. GET /admin/users/1/history ───────►│                                    │
+              │   (Header: Bearer <Token_Usuario>)     │                                    │
+              │                                        │── 2. Intercepta @token_required:   │
+              │                                        │      Decodifica HMAC-SHA256        │
+              │                                        │      Valida firma y vigencia (24h) │
+              │                                        │                                    │
+              │                                        │── 3. Intercepta @admin_required:   │
+              │                                        │      Inspecciona current_user.role │
+              │                                        │      Verifica: 'user' != 'admin'   │
+              │                                        │                                    │
+              │                                        │── 4. EVALUACIÓN DE PRIVILEGIOS:    │
+              │                                        │      DENEGADO INMEDIATAMENTE       │
+              │                                        │      [NO accede a Base de Datos]   │
+              │                                        │                                    │
+              │◄── 5. HTTP 403 Forbidden ──────────────│                                    │
+              │   {"status": "error",                  │                                    │
+              │    "message": "Acceso denegado:        │                                    │
+              │     se requieren privilegios..."}      │                                    │
+              │                                        │                                    │
+   [ Renderiza tarjeta verde ]                         │                                    │
+   "🛡️ 403 Forbidden: Bloqueo                          │                                    │
+    exitoso por RBAC"                                  │                                    │
+```
+
+### 5.1. Hashing Criptográfico de Contraseñas (Bcrypt)
+* Las contraseñas jamás se almacenan ni transmiten en texto plano.
+* Se emplea la biblioteca nativa `Flask-Bcrypt`, la cual utiliza el algoritmo derivador de claves **Bcrypt** con generación automática de sal (*salt*) aleatoria por usuario y un factor de costo computacional (*work factor*) de 12 rondas.
+* Esto protege el almacén de credenciales contra ataques de fuerza bruta, diccionarios y tablas arcoíris (*rainbow tables*).
+
+### 5.2. Tokens Web JSON (JWT) y Gestión de Sesión
+* La autenticación emite un token firmado criptográficamente mediante el algoritmo **HMAC-SHA256** utilizando una clave secreta (`SECRET_KEY`) configurada en el servidor.
+* **Estructura del Payload:** Contiene la identidad única del usuario (`user_id`), el nombre de usuario (`username`), su rol de acceso asignado (`role: 'user'` o `'admin'`), y la estampa de expiración (`exp`), fijada a **24 horas** de vigencia continua.
+* Todo endpoint protegido valida la firma criptográfica antes de procesar la solicitud.
+
+### 5.3. Autenticación Federada con Google (Google Sign-In / OAuth 2.0)
+* Permite el inicio de sesión sin contraseña utilizando el proveedor de identidad de Google.
+* El cliente móvil invoca el selector de cuenta de Google Identity (One Tap / Account Chooser).
+* Los datos verificados de perfil se transmiten al endpoint `POST /auth/google`.
+* El servidor valida el identificador de Google, crea la cuenta automáticamente si es la primera vez que ingresa (o la vincula si ya existía), y genera una sesión JWT homogénea para la aplicación.
+* **Seguridad de Credenciales:** La aplicación no almacena credenciales ni tokens de larga duración de Google; todas las interacciones subsecuentes viajan respaldadas por el JWT propio del sistema.
+
+### 5.4. Control de Acceso Basado en Roles (RBAC) y Explicación del 403 Forbidden
+El sistema distingue formalmente dos niveles de privilegios:
+1. **Rol Usuario (`user`):** Puede gestionar sus propias tareas, consultar series, guardar sus favoritos y consultar su propio historial. No tiene visibilidad ni acceso a la información de otros usuarios.
+2. **Rol Administrador (`admin`):** Posee facultades para auditar el historial de búsqueda y los favoritos de cualquier usuario registrado en la plataforma.
+
+#### ¿Qué sucede detrás de cámaras durante la Prueba de 403 Forbidden?
+1. **La Petición:** Al presionar el botón de verificación en la pantalla de Auditoría (o intentar acceder a rutas administrativas desde una cuenta ordinaria), la aplicación envía una solicitud HTTP al endpoint `/admin/users/<id>/history` sin credenciales de administrador o con un token de rol `user`.
+2. **La Intercepción en el Servidor:** La función de la vista en Flask está decorada con `@token_required` y `@admin_required`. Antes de que se ejecute una sola línea de código del controlador o se consulte la base de datos, el decorador extrae el encabezado `Authorization: Bearer <token>`.
+3. **Validación del Token y Rol:** El servidor decodifica el token con su clave secreta, comprueba que no esté expirado e inspecciona el campo `role`.
+4. **Denegación Inmediata (403 Forbidden):** Al constatar que el rol del solicitante es `user` (o que el token carece de los privilegios requeridos), el servidor interrumpe inmediatamente el flujo y retorna una respuesta con código de estado HTTP **`403 Forbidden`** y el mensaje JSON:
+   ```json
+   {
+     "status": "error",
+     "message": "Acceso denegado: se requieren privilegios de Administrador para esta operación"
+   }
+   ```
+5. **Manejo Controlado en el Cliente (Zero Crashes):** El cliente HTTP en KMP captura el código 403, comprueba que la API rechazó la operación conforme a la regla de seguridad y despliega la tarjeta de validación exitosa:
+   > `🛡️ 403 Forbidden: El servidor validó el rol y bloqueó el acceso no autorizado exitosamente. Mensaje: Acceso denegado: se requieren privilegios de Administrador para esta operación`
+6. **Importancia de la Evidencia:** Esto demuestra de manera irrefutable que la seguridad **no descansa en el cliente móvil** (ocultar un botón), sino que está blindada en la API del servidor. Incluso si un usuario malicioso o atacante intenta invocar los endpoints de auditoría mediante herramientas como Postman o cURL, el servidor rechaza categóricamente la intrusión.
+
+---
+
+## 6. Persistencia Local, Funcionamiento Offline y Resolución de Conflictos
+
+### 6.1. Funcionamiento sin Conexión (Offline 100%)
+La aplicación implementa el patrón **Offline-First**:
+1. Toda consulta realizada a la API pública de TVMaze y al backend REST se almacena inmediatamente en el gestor de persistencia local (`LocalCacheManager`).
+2. Al perder conectividad (ej. Modo Avión o falla de red), la aplicación no muestra pantallas en blanco ni crashea; despliega la totalidad de las tareas, favoritos, historial y sugerencias disponibles en la memoria persistente.
+3. El banner de sincronización superior (`SyncBanner`) alerta al usuario mediante un chip informativo: `🟠 Modo Offline | X cambios pendientes`.
+
+### 6.2. Cola de Operaciones Pendientes (*Offline Action Queue*)
+Cuando el usuario añade o retira series de sus favoritos sin internet:
+* La acción no se descarta; se encapsula como un objeto tipado `OfflineAction(action="add"|"remove", itemId, ...)` dentro de una cola FIFO local.
+* En el caso de operaciones redundantes sobre el mismo elemento (ej. agregar y luego quitar mientras sigue offline), la cola cancela la acción previa de forma inteligente para optimizar el tráfico de red.
+* Al recuperar conexión o presionar el botón **"Sincronizar"**, la cola se transmite en lote al endpoint `POST /sync/favorites`.
+
+### 6.3. Estrategia de Resolución de Conflictos
+* **Catálogo Canónico de Series:** Prioridad del Servidor (*Server-Wins*). Los metadatos de las series provienen de la fuente oficial de TVMaze.
+* **Preferencias de Usuario (Favoritos):** Prioridad del Cliente con resolución idempotente. Si el usuario marcó una serie en el cliente, el backend valida si ya existía; si ya estaba presente, responde con éxito sin generar registros duplicados.
+
+---
+
+## 7. Motor de Recomendaciones Verificables (Ejercicio 3.2)
+
+El sistema integra un algoritmo determinista reproducible en el módulo compartido KMP (`RecommendationEngine.kt`), cumpliendo estrictamente con la especificación de **no requerir cajas negras de inteligencia artificial**:
+
+### 7.1. Regla Matemática y Algoritmo
+1. **Ponderación de Frecuencia de Géneros:**
+   * Por cada serie en la lista de favoritos del usuario, sus géneros reciben un peso de $+2$ puntos.
+   * Por cada término en el historial de búsquedas del usuario con coincidencia en catálogo, sus géneros reciben un peso de $+1$ punto.
+   $$\text{Peso}(g) = 2 \cdot \sum \text{favorito}(g) + 1 \cdot \sum \text{búsqueda}(g)$$
+2. **Puntuación de Candidatos:**
+   Para cada serie candidata en el catálogo que el usuario aún **no** tenga en favoritos, se calcula su puntuación de afinidad:
+   $$\text{Afinidad} = \sum_{g \in \text{géneros}} \text{Peso}(g) + \left(\frac{\text{Calificación}}{10} \times 2.0\right)$$
+3. **Selección y Explicabilidad:**
+   Se ordenan los candidatos de forma descendente y se seleccionan al menos 3 recomendaciones con un texto explicativo claro (ej. *"💡 Coincide con tus géneros preferidos: Drama, Romance, Comedy (Afinidad: 54 pts)"*).
+4. **Resolución del Estado Frío (*Cold Start*):**
+   Si el usuario no tiene historial ni favoritos, el motor devuelve automáticamente las 4 series con mayor calificación del catálogo global, acompañadas del mensaje: *"Sugerencia inicial destacada por alta calificación. Añade series a Favoritos para personalizar tus recomendaciones"*.
+
+---
+
+## 8. Guía de Ejecución y Pruebas
+
+### 8.1. Ejecución del Backend Flask
 Ubicarse en el directorio del backend:
 ```bash
 cd "Docker-Flask/ORM"
 ```
-Copiar el archivo de plantilla `.env.example` a `.env`:
-- En Windows (PowerShell):
-  ```powershell
-  Copy-Item .env.example .env
-  ```
-- En Linux / macOS:
-  ```bash
-  cp .env.example .env
-  ```
+**Opción A: Ejecución con Python (Directa)**
+```bash
+# Crear entorno virtual e instalar dependencias
+python -m venv venv
+.\venv\Scripts\pip install -r requirements.txt
 
-#### Pasos Previos para el Despliegue
-1. **Clonar el Repositorio de GitHub**:
-   ```bash
-   git clone https://github.com/gabrielhuav/Flask-Compose-Login-API.git
-   cd Flask-Compose-Login-API
-   ```
-2. **Navegar a la Carpeta del Backend**:
-   ```bash
-   cd Docker-Flask/ORM
-   ```
-3. **Configurar el Archivo de Variables de Entorno (`.env`)**:
-   Copiar el archivo de plantilla `.env.example` a `.env` para habilitar la clave secreta y la cadena de conexión:
-   - En Windows (PowerShell):
-     ```powershell
-     Copy-Item .env.example .env
-     ```
-   - En Linux / macOS:
-     ```bash
-     cp .env.example .env
-     ```
+# Iniciar servidor REST en puerto 5000
+.\venv\Scripts\python app.py
+```
 
-#### Explicación Detallada Instrucción por Instrucción del `Dockerfile`
-
-El archivo [`Dockerfile`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Docker-Flask/ORM/Dockerfile) automatiza la creación de la imagen para el microservicio Flask. Cada directiva cumple una función crítica:
-
-| Instrucción | Parámetro | Explicación Técnica Detallada |
-|:---|:---|:---|
-| `FROM` | `python:3.9-slim` | Establece la imagen base oficial. Se elige la variante *slim* (basada en Debian reducida) porque contiene únicamente los binarios indispensables para ejecutar Python 3.9, reduciendo drásticamente el tamaño de la imagen final y minimizando la superficie de posibles vulnerabilidades. |
-| `WORKDIR` | `/app` | Define el directorio de trabajo predeterminado dentro del contenedor. Todas las acciones subsecuentes (`COPY`, `RUN`, `CMD`) se ejecutarán en esta ruta absoluta `/app`. Si no existe, Docker la crea automáticamente. |
-| `COPY` | `requirements.txt .` | Copia **únicamente** el archivo de dependencias antes que el resto del código. Esta es una optimización fundamental del sistema de capas (*Docker Cache*): mientras `requirements.txt` no cambie, Docker reutiliza la capa previa en compilaciones posteriores sin reinstalar librerías. |
-| `RUN` | `pip install --no-cache-dir -r requirements.txt` | Ejecuta la instalación de las dependencias de Python. El parámetro `--no-cache-dir` evita almacenar los paquetes descargados en el caché temporal de pip, manteniendo la imagen compacta y liviana. |
-| `COPY` | `. .` | Copia la totalidad de los archivos del directorio local del backend hacia el directorio de trabajo `/app` del contenedor. |
-| `EXPOSE` | `5000` | Documenta e indica a nivel de metadatos que el proceso que se ejecutará dentro del contenedor escuchará peticiones de red en el puerto TCP 5000. |
-| `CMD` | `["python", "app.py"]` | Define el comando por defecto en formato *exec* que se ejecutará en el momento exacto en que se inicie un contenedor derivado de esta imagen, arrancando el servidor web de Flask. |
-
-#### Explicación Detallada Instrucción por Instrucción del `docker-compose.yml`
-
-El archivo [`docker-compose.yml`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Docker-Flask/ORM/docker-compose.yml) orquesta la arquitectura multicontenedor:
-
-| Instrucción / Clave | Valor / Ejemplo | Explicación Técnica Detallada |
-|:---|:---|:---|
-| `version:` | `'3.8'` | Especifica la versión del esquema de Docker Compose que define la sintaxis admitida y la compatibilidad con las características modernas del motor Docker. |
-| `services:` | *(Bloque raíz)* | Sección que declara el conjunto de contenedores interconectados que conforman la solución. |
-| **Servicio: `postgres:`** | *(Nombre del servicio)* | Define el servicio encargado de la base de datos relacional PostgreSQL. |
-| `image:` | `postgres:17` | Instruye a Docker descargar directamente la imagen oficial de PostgreSQL versión 17 desde Docker Hub sin requerir una compilación local. |
-| `container_name:` | `postgres17_7CV4_sep2026` | Asigna un identificador amigable al contenedor en ejecución, combinando la versión del motor, el grupo académico (**7CV4**) y la fecha de entrega, facilitando su monitoreo con `docker ps`. |
-| `environment:` | `POSTGRES_DB: postgres`<br>`POSTGRES_USER: postgres`<br>`POSTGRES_PASSWORD: postgres` | Inyecta las variables de entorno obligatorias que el entrypoint oficial de PostgreSQL necesita para inicializar la base de datos, el superusuario y sus credenciales de acceso iniciales. |
-| `ports:` | `-"5432:5432"` | Mapeo de puertos `Host:Contenedor`. Permite que aplicaciones o clientes externos alcancen el motor Postgres mediante el puerto 5432 de la máquina host. |
-| `volumes:` | `- ./data:/var/lib/postgresql/data` | Crea un volumen enlazado (*bind mount*) entre la carpeta local `./data` y el directorio de almacenamiento interno de PostgreSQL. Garantiza que la información y las tablas **no se destruyan** al apagar o recrear el contenedor. |
-| `restart:` | `unless-stopped` | Política de resiliencia que indica al demonio de Docker reiniciar el contenedor automáticamente si falla o tras un reinicio del sistema, a menos que se detenga manualmente. |
-| **Servicio: `web:`** | *(Nombre del servicio)* | Define el contenedor que ejecuta el backend REST en Flask. |
-| `build:` | `.` | Ordena a Compose construir la imagen en tiempo de ejecución utilizando el `Dockerfile` ubicado en el directorio actual (`.`). |
-| `container_name:` | `flask_login_backend` | Nombre identificador explícito para el contenedor de la API. |
-| `ports:` | `-"5000:5000"` | Mapea el puerto 5000 de la máquina física al puerto 5000 del contenedor, permitiendo que la aplicación Android y herramientas como curl consuman los endpoints. |
-| `env_file:` | `- .env` | Lee e inyecta las variables y secretos almacenados en el archivo local `.env`, evitando exponer credenciales en el código versionado. |
-| `environment:` | `FLASK_ENV`, `FLASK_DEBUG`, `PORT`, `DATABASE_URL` | Configura el modo de depuración para desarrollo y establece la cadena de conexión interna `postgresql://postgres:postgres@postgres:5432/postgres` usando el nombre del servicio `postgres` como host DNS. |
-| `depends_on:` | `- postgres` | Establece una dependencia de arranque: Compose garantiza que el contenedor de PostgreSQL inicie antes de intentar levantar el servicio Flask. |
-| `volumes:` | `- .:/app` | Vincula el directorio de código fuente del host con `/app` dentro del contenedor, lo que permite la recarga en caliente (*Hot-Reloading*) inmediata cuando se modifica código en Python sin tener que reconstruir la imagen. |
-
-#### Paso para Levantar el Entorno con Docker Compose
-Ejecutar el comando de construcción y puesta en marcha:
+**Opción B: Despliegue con Docker Compose**
 ```bash
 docker compose up --build
 ```
-*(El flag `--build` fuerza la construcción de la imagen actualizada antes de arrancar los contenedores).*
 
-
-#### Opción Alternativa (Ejecución Directa con Python)
-Si Docker Desktop se encuentra pausado o se desea probar localmente:
+### 8.2. Ejecución de la Suite de Pruebas Automatizadas
+Se incluye una suite integral de 15 pruebas unitarias e integración que valida los Quality Gates de la práctica:
 ```bash
-cd "Docker-Flask/ORM"
-pip install -r requirements.txt
-python app.py
+.\venv\Scripts\python test_api.py
 ```
+*Resultado de la suite:* **15 de 15 pruebas exitosas (100%)**, verificando el registro, login JWT, CRUD de tareas, Google Auth, historial, favoritos, sincronización en lote y la denegación con código 403 Forbidden.
 
-#### Paso 3: Verificación Automatizada con Test Suite
-Se incluye un script de validación que prueba todos los endpoints, códigos de estado y la expiración de tokens:
-```bash
-python test_api.py
-```
-
----
-
-### 2.5. Configuración y Ejecución de la App Android
-
-#### Consideraciones de Red para Conexión al Backend
-1. **Emulador Oficial de Android (AVD)**:
-   - El emulador tiene su propio espacio de red aislado donde `localhost` o `127.0.0.1` apunta a sí mismo.
-   - Para comunicarse con el backend REST corriendo en la computadora anfitriona (en el puerto 5000), se debe utilizar la dirección especial **`http://10.0.2.2:5000/`**. Ésta se encuentra configurada por defecto en [`RetrofitClient.kt`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Android/FlaskLogin/app/src/main/java/ovh/gabrielhuav/flasklogin/data/api/RetrofitClient.kt).
-2. **Dispositivo Físico**:
-   - Conectar el teléfono y la computadora a la misma red Wi-Fi.
-   - Obtener la IP local de la computadora (ej. `ipconfig` en Windows -> `192.168.1.76`).
-   - Configurar la URL en `RetrofitClient.kt`: `http://192.168.1.76:5000/`.
-3. **Permisos y Tráfico HTTP en Texto Claro**:
-   - En [`AndroidManifest.xml`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Android/FlaskLogin/app/src/main/AndroidManifest.xml) se habilitó el permiso de internet:
-     ```xml
-     <uses-permission android:name="android.permission.INTERNET" />
-     ```
-   - Y se permitió tráfico HTTP no cifrado para entornos de desarrollo:
-     ```xml
-     android:usesCleartextTraffic="true"
-     ```
-
-#### Ejecución en Android Studio
-1. Abrir **Android Studio**.
-2. Seleccionar **Open** y abrir la carpeta `Android/FlaskLogin`.
-3. Permitir que Gradle sincronice el proyecto (*Sync Project with Gradle Files*).
-4. Iniciar un Emulador Android (AVD) con API 24 o superior.
-5. Presionar el botón **Run 'app'** (Shift + F10).
-
-#### APK Precompilado (Ejecución Directa Sin Compilar ni Llaves Externas)
-
-Para cumplir con el requerimiento de entrega de un binario listo para ejecución inmediata, se incluye el APK ya compilado y firmado para depuración en el repositorio:
-
-- **Ruta del Binario:** [`Android/apk/app-debug.apk`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/Android/apk/app-debug.apk)
-- **Autonomía Absoluta (Sin Llaves Externas):** La aplicación no requiere ninguna API key de terceros (como Firebase, Google APIs o servicios externos de pago). Utiliza una arquitectura REST pura con tokens JWT y Retrofit apuntando por defecto a `http://10.0.2.2:5000/`.
-- **Instalación Directa:**
-  - **Opción A (Arrastrar y Soltar):** Con el emulador Android encendido, arrastrar el archivo `app-debug.apk` directamente sobre la ventana del emulador. Android lo instalará automáticamente.
-  - **Opción B (Línea de comandos con ADB):**
-    ```bash
-    adb install Android/apk/app-debug.apk
-    ```
+### 8.3. Ejecución de la Aplicación Móvil
+1. Abrir la carpeta `Android/FlaskLogin` en **Android Studio**.
+2. Permitir que Gradle sincronice el proyecto KMP.
+3. Iniciar un Emulador Android (AVD con API 24+) o conectar un dispositivo físico por depuración USB.
+   * *Si se usa dispositivo físico por USB:* Ejecutar `adb reverse tcp:5000 tcp:5000` para enrutar el puerto del backend.
+4. Presionar **Run 'app'** (Shift + F10).
 
 ---
 
-### 2.6. Evidencias de Ejecución (Capturas de Pantalla)
+## 9. Matriz de Pruebas de Calidad (QA Gates) con Resultados
 
-Las capturas deben colocarse en la carpeta [`docs/img/`](file:///c:/Users/osito/OneDrive/Documentos/Desarrollo%20Apps%20Moviles/Flask-Compose-Login-API/docs/img/). 
-
-> [!TIP]
-> **¿Cómo incrustar y visualizar las capturas en GitHub?**
-> - **Método Automático vía Git:** Guarda tus capturas dentro de la carpeta local `docs/img/` con los nombres exactos de la tabla (ej. `01_registro_exitoso.png`). Haz `git add docs/img/`, `git commit` y `git push origin main`. GitHub renderizará automáticamente las imágenes dentro de esta tabla en el README.
-> - **Método Web en GitHub:** Entra a tu repositorio en el navegador, ve a la carpeta `docs/img`, pulsa **Add file > Upload files**, arrastra las fotos y haz commit.
-
-
-| Acción Evaluada | Evidencia Incrustada | Descripción |
-|:---|:---:|:---|
-| **Contenedor Docker Activo** | ![Docker](docs/img/10_docker_running.png) | Servicio REST corriendo en puerto 5000 vía Docker Compose |
-| **Registro de Usuario** | ![Registro](docs/img/01_registro_exitoso.png) | Creación exitosa de una nueva cuenta |
-| **Control de Duplicados (400)** | ![Duplicado](docs/img/02_registro_duplicado.png) | Validación y rechazo si el usuario ya existe |
-| **Credenciales Inválidas (401)**| ![Login Error](docs/img/03_login_invalido.png) | Manejo de contraseña incorrecta |
-| **Inicio de Sesión Exitoso** | ![Login OK](docs/img/04_login_exitoso.png) | Obtención de sesión con token JWT y rol |
-| **Menú de Navegación (Drawer)** | ![Drawer](docs/img/05_drawer_navegacion.png) | Drawer lateral con opciones dinámicas y badge de rol |
-| **Perfil de Usuario (GET / PUT)** | ![Perfil](docs/img/11_perfil_usuario.png) | Consulta y modificación de datos personales propios |
-| **CRUD de Usuarios - Admin** | ![Admin Users](docs/img/12_admin_gestion_usuarios.png) | Listado, creación, edición y baja de usuarios por Administrador |
-| **CRUD: Crear Tarea (POST)** | ![Crear](docs/img/06_crud_crear.png) | Diálogo modal y registro de tarea (201) |
-| **CRUD: Listar Tareas (GET)** | ![Listar](docs/img/07_crud_listar.png) | Visualización reactiva de tareas en `LazyColumn` (200) |
-| **CRUD: Actualizar Tarea (PUT)**| ![Actualizar](docs/img/08_crud_actualizar.png)| Cambio de estado o edición de texto (200) |
-| **CRUD: Borrar Tarea (DELETE)**| ![Borrar](docs/img/09_crud_eliminar.png) | Diálogo de confirmación y eliminación (200) |
+| # | Categoría de Prueba | Módulo Evaluado | Precondición | Pasos de Ejecución | Resultado Esperado | Resultado Obtenido | Estado |
+|---|---|---|---|---|---|---|:---:|
+| **CP-01** | **Ruta Feliz (Happy Path)** | Búsqueda Pública y Favoritos (TVMaze API) | Dispositivo con conexión a internet y sesión de usuario activa | 1. Ir a "Buscar Series".<br>2. Ingresar término de búsqueda (`Family Guy`).<br>3. Abrir la ficha técnica de la serie y pulsar "Guardar en Favoritos". | La API de TVMaze devuelve resultados reales (imagen, rating, géneros y sinopsis). Al marcar la estrella, la serie se guarda en la base de datos remota y en caché local. | Los resultados se renderizan inmediatamente con chips de género y calificación; la serie queda registrada en la pantalla "Mis Favoritos" con estrella dorada activa. | **EXITOSO** |
+| **CP-02** | **Condición Límite / Alterna** | Búsqueda y Manejo de Errores | App conectada a internet | 1. Ingresar búsqueda sin coincidencias (`lolol777`).<br>2. Observar la reacción de la interfaz. | La aplicación no debe cerrarse de forma inesperada (*Zero Crashes*); debe desplegar una vista de estado vacío amigable con sugerencia alternativa. | La vista muestra *"Sin resultados para lolol777"* y ofrece el catálogo en memoria local sin cierres inesperados. | **EXITOSO** |
+| **CP-03** | **Regresión** | CRUD de Tareas de Práctica 2 | Usuario autenticado contra backend REST Flask | 1. Navegar a "Tareas CRUD".<br>2. Crear una nueva tarea.<br>3. Editar su título y marcarla como completada.<br>4. Eliminar la tarea. | Las 4 operaciones CRUD (GET, POST, PUT, DELETE) de la P2 deben operar íntegramente a través del módulo KMP. | CRUD 100% funcional con actualización reactiva en `LazyColumn`, chips de estado y sincronización con Flask. | **EXITOSO** |
+| **CP-04** | **Navegación y Ciclo de Vida** | Persistencia de Sesión y Reinicio | Usuario autenticado con favoritos e historial guardados | 1. Guardar series e interactuar con la app.<br>2. Forzar el cierre de la aplicación desde la multitarea de Android.<br>3. Reabrir la app. | La sesión del usuario se restaura automáticamente mediante el token JWT seguro; los favoritos y el historial se cargan de inmediato sin solicitar login nuevamente. | Se comprueba la persistencia local de la sesión activa y los datos locales tras el reinicio en frío del proceso (documentado en video). | **EXITOSO** |
+| **CP-05** | **Sincronización Offline y Cola Pendiente** | Motor de Sincronización Local / Remoto | Dispositivo en **Modo Avión** (sin conectividad de red) | 1. Activar Modo Avión.<br>2. Realizar búsquedas locales y agregar favoritos.<br>3. Reconectar a internet y pulsar "Sincronizar". | En modo offline la acción se almacena en la cola local (`offline_queue`). Al recuperar conexión, se envía en bloque a `POST /sync/favorites` sin generar duplicados. | La barra superior notifica los cambios en cola y confirma *"Sincronizado con éxito"* actualizando la estampa temporal sin duplicar favoritos en el servidor. | **EXITOSO** |
+| **CP-06** | **Seguridad y Control de Acceso (RBAC)** | Auditoría Administrativa y Google OAuth | Cuenta de usuario estándar (`role: user`) vs Administrador (`role: admin`) | 1. Iniciar sesión como `admin` y consultar historial de otro usuario.<br>2. Ejecutar la prueba de verificación de seguridad 403 Forbidden. | El backend concede acceso 200 OK al Administrador; solicitudes no autorizadas son bloqueadas con código HTTP **403 Forbidden** por el decorador `@admin_required`. | El administrador inspecciona datos de cualquier cuenta; solicitudes no autorizadas son rechazadas con 403 Forbidden y la app confirma el bloqueo con insignia verde. | **EXITOSO** |
 
 ---
 
-## 3. Conclusiones
+## 10. Evidencias de Evaluación (Galería de Capturas y Registro Audiovisual)
 
-El desarrollo de esta práctica permitió comprender en profundidad los principios fundamentales de la integración cliente-servidor nativa y la containerización de servicios:
+Todas las evidencias visuales han sido capturadas directamente en un dispositivo móvil físico y se encuentran disponibles en [`docs/capturas/`](docs/capturas/):
 
-1. **Aislamiento y Reproducibilidad con Docker**: Docker Compose elimina los problemas clásicos de "en mi máquina sí funciona". Al encapsular la versión exacta de Python, las dependencias y la configuración de red, cualquier colaborador puede poner en marcha el backend inmediatamente con un único comando.
-2. **Seguridad en la Autenticación y Manejo de Sesiones**: Se comprobó que almacenar contraseñas en texto plano es una vulnerabilidad crítica. El uso de `Flask-Bcrypt` con sal aleatoria garantiza la resistencia ante ataques de diccionario. Adicionalmente, el patrón de tokens JWT permitió proteger de manera desacoplada los endpoints CRUD, logrando que el servidor no necesite almacenar estado en memoria para verificar la autenticidad de cada petición.
-3. **Desarrollo Declarativo con Jetpack Compose**: La transición de layouts tradicionales en XML hacia Jetpack Compose agiliza significativamente la construcción de interfaces. El desacoplamiento del estado visual (*Loading*, *Error*, *Empty*, *Success*) garantiza una experiencia de usuario clara, evitando bloqueos en la interfaz y manteniendo informado al usuario en todo momento.
-4. **Resolución de Red en Emuladores**: Uno de los retos más comunes en el desarrollo móvil es comprender el direccionamiento de red. Comprender que `localhost` dentro de un emulador apunta al dispositivo virtual y que la IP virtual de puente hacia el host es `10.0.2.2` resultó clave para lograr la comunicación HTTP fluida con el contenedor Docker.
+### Bloque 1: Autenticación, Google OAuth y Menú por Roles
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/capturas/menuprincipal_iniciodesesion.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 1: Pantalla de Login</b><br>
+      <em>Formulario nativo de usuario y contraseña, botón oficial de Google Identity y selector dinámico de IP del servidor backend.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/04_google_auth_sesion.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 2: Google One Tap OAuth</b><br>
+      <em>Diálogo modal oficial de Google con la cuenta del alumno (Manuel Aragón) vinculando la identidad con el backend Flask.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/menu_cuenta_administrador.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 3: Menú Lateral (Rol Admin)</b><br>
+      <em>Drawer con insignia destacada "ROL: ADMINISTRADOR" y accesos exclusivos a Gestión de Usuarios y Auditoría de Historial.</em>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## 4. Bibliografía (Formato APA 7.ª Edición)
+### Bloque 2: Regresión de la Práctica 2 (CRUD de Tareas en Backend Propio)
 
-- Android Developers. (2024). *Jetpack Compose basics*. Google Developers. https://developer.android.com/develop/ui/compose/tutorial
-- Docker Inc. (2024). *Docker Compose overview*. Docker Documentation. https://docs.docker.com/compose/
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/capturas/01_consulta_rest_crud.jpg" width="320" style="border-radius: 8px;" />
+      <br><b>Figura 4: Gestión de Tareas (CRUD P2)</b><br>
+      <em>Pantalla de Tareas conectada a Flask ejecutando operaciones de lectura, creación con FAB (+), edición y eliminación con actualización reactiva.</em>
+    </td>
+    <td align="center" width="50%">
+      <div style="padding: 20px; text-align: left;">
+        <h4>Verificación de Regresión (Quality Gate P2):</h4>
+        <ul>
+          <li><b>Preservación de Modelos:</b> El modelo <code>Task</code> de SQLAlchemy y su tabla en SQLite se mantuvieron 100% compatibles.</li>
+          <li><b>Operaciones REST:</b> Métodos <code>GET /tasks</code>, <code>POST /tasks</code>, <code>PUT /tasks/&lt;id&gt;</code> y <code>DELETE /tasks/&lt;id&gt;</code> operando bajo token JWT.</li>
+          <li><b>Integración KMP:</b> El controlador fue migrado al patrón Repository dentro del módulo compartido <code>:shared</code>.</li>
+        </ul>
+      </div>
+    </td>
+  </tr>
+</table>
+
+---
+
+### Bloque 3: Explorador Público TVMaze API, Ficha Técnica y Manejo de Errores
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/capturas/explorador_de_series_online.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 5: Búsqueda en Vivo (TVMaze)</b><br>
+      <em>Consulta en tiempo real con historial de búsquedas recientes, portadas Coil y calificación de series.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/02_busqueda_publica_detalle.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 6: Ficha Detallada de Serie</b><br>
+      <em>Diálogo modal con portada grande, géneros, calificación ⭐, fecha de estreno, sinopsis completa y botón de favoritos.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/03_estado_vacio_y_error.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 7: Estado Vacío Resiliente</b><br>
+      <em>Manejo de búsqueda sin coincidencias ("lolol777") sin cierres inesperados, desplegando el catálogo alternativo en memoria.</em>
+    </td>
+  </tr>
+</table>
+
+---
+
+### Bloque 4: Persistencia Local, Modo Offline y Sincronización
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <img src="docs/capturas/series_modooffline_cache.jpg" width="240" style="border-radius: 8px;" />
+      <br><b>Figura 8: Modo Offline Activo</b><br>
+      <em>Banner informativo naranja alertando que las consultas se resuelven contra la memoria local.</em>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/capturas/series_sugeridas_offline.jpg" width="240" style="border-radius: 8px;" />
+      <br><b>Figura 9: Catálogo Offline</b><br>
+      <em>Insignia horizontal "🟢 Disponible Offline" con series precargadas disponibles sin internet.</em>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/capturas/busqueda_offline_funcional_cache.jpg" width="240" style="border-radius: 8px;" />
+      <br><b>Figura 10: Búsqueda en Caché</b><br>
+      <em>Búsqueda offline exitosa resolviendo coincidencias locales para "family guy" sin conexión.</em>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/capturas/busqueda_nueva_offline_sin_cache.jpg" width="240" style="border-radius: 8px;" />
+      <br><b>Figura 11: Offline sin Coincidencia</b><br>
+      <em>Mensaje orientador cuando un término no está en caché, sugiriendo el catálogo disponible.</em>
+    </td>
+  </tr>
+</table>
+
+#### Demostración en Video del Modo Offline y Caché Local:
+* **Archivo de Video:** [`docs/capturas/video_funcionamiento_offline_cache.mp4`](docs/capturas/video_funcionamiento_offline_cache.mp4) (Demostración interactiva de desconexión, navegación en caché, adición de favoritos a la cola y sincronización idempotente tras reconexión).
+
+---
+
+### Bloque 5: Favoritos y Recomendaciones Explicables
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/capturas/05_favoritos_marcadores.jpg" width="320" style="border-radius: 8px;" />
+      <br><b>Figura 12: Mis Series Favoritas</b><br>
+      <em>Listado de 6 series guardadas con persistencia local y remota, portadas de alta calidad y opción de eliminación.</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/capturas/06_recomendaciones_regla.jpg" width="320" style="border-radius: 8px;" />
+      <br><b>Figura 13: Motor de Recomendaciones</b><br>
+      <em>Sugerencias calculadas por el algoritmo determinista con la tarjeta explicativa: "💡 Coincide con tus géneros preferidos: Drama, Romance, Comedy (Afinidad: 54 pts)".</em>
+    </td>
+  </tr>
+</table>
+
+---
+
+### Bloque 6: Reinicio de Aplicación y Persistencia en Frío
+
+* **Archivo de Video:** [`docs/capturas/07_video_reinicio_app_persistencia.mp4`](docs/capturas/07_video_reinicio_app_persistencia.mp4)
+* **Descripción de la Evidencia:** Registro en video donde se fuerza el cierre completo de la aplicación desde el Administrador de Tareas de Android (deslizamiento en multitarea). Al reabrir la app, el token JWT, la sesión del usuario, el historial de búsquedas y los favoritos se restauran de manera inmediata sin solicitar credenciales nuevamente.
+
+---
+
+### Bloque 7: Auditoría Administrativa y Control de Acceso RBAC (403 Forbidden)
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/capturas/auditoria_adminausuario_historial.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 14: Auditoría de Historial</b><br>
+      <em>El administrador inspecciona el historial de búsquedas del usuario seleccionado con estampas de fecha y hora.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/auditoria_adminausuario_favoritos.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 15: Auditoría de Favoritos</b><br>
+      <em>El administrador visualiza las series favoritas almacenadas por el usuario auditado.</em>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/capturas/09_admin_auditoria_rbac.jpg" width="280" style="border-radius: 8px;" />
+      <br><b>Figura 16: Bloqueo RBAC 403 Forbidden</b><br>
+      <em>Tarjeta verde confirmando que el backend validó el rol, aplicó <code>@admin_required</code> y bloqueó el acceso no autorizado con código HTTP 403.</em>
+    </td>
+  </tr>
+</table>
+
+<br>
+
+<p align="center">
+  <img src="docs/capturas/Captura_Terminal_POST_GET_adminyusuario.png" width="95%" style="border-radius: 8px; border: 1px solid #444;" />
+  <br><b>Figura 17: Registro de Peticiones y Auditoría en Terminal del Servidor Backend (Flask)</b><br>
+  <em>Trazabilidad en tiempo real en la consola de Flask (<code>app.py</code>): se observan peticiones exitosas de usuario ordinario (<code>POST /login</code>, <code>GET /history</code>, <code>GET /favorites</code> con código 200 OK), consultas de auditoría del Administrador (<code>GET /admin/users/1/history</code>, <code>GET /admin/users/6/favorites</code> con código 200 OK), y el rechazo inmediato de peticiones no autorizadas durante la prueba de seguridad RBAC (<code>GET /admin/users/1/history</code> con código 401/403 denegado por el decorador de seguridad).</em>
+</p>
+
+---
+
+## 11. Conclusiones
+
+1. **Madurez de Kotlin Multiplatform (KMP):** La separación de responsabilidades entre el módulo compartido `:shared` (red Ktor, motor de recomendaciones y persistencia) y la interfaz de usuario garantiza una base de código común limpia y altamente mantenible, reutilizable tanto en Android como en iOS sin duplicar lógica de negocio.
+2. **Resiliencia Mediante Arquitectura Offline-First:** Diseñar la aplicación para asumir que la conectividad es intermitente permite una experiencia de usuario ininterrumpida. El uso de colas de acciones locales y endpoints de sincronización idempotentes erradica por completo la pérdida o duplicación de datos.
+3. **Explicabilidad en Sistemas de Recomendación:** Se demostró con éxito que un algoritmo basado en reglas matemáticas transparentes (frecuencias y afinidad de géneros) puede ofrecer sugerencias precisas y justificables al usuario sin incurrir en cajas negras ni en los costos computacionales de modelos complejos de IA.
+4. **Seguridad y Control RBAC Riguroso:** Proteger endpoints tanto a nivel de transporte (JWT) como a nivel de lógica de negocio en el backend (`@token_required` y `@admin_required`) garantiza que los datos personales de historial y favoritos permanezcan estrictamente aislados entre usuarios, rechazando con código HTTP 403 cualquier intento de escalamiento de privilegios.
+
+---
+
+## 12. Bibliografía (Formato APA 7.ª Edición)
+
 - Fielding, R. T. (2000). *Architectural Styles and the Design of Network-based Software Architectures* (Doctoral dissertation). University of California, Irvine.
-- Grinberg, M. (2018). *Flask Web Development: Developing Web Applications with Python* (2nd ed.). O'Reilly Media.
+- JetBrains. (2024). *Kotlin Multiplatform overview*. JetBrains Documentation. https://kotlinlang.org/docs/multiplatform.html
+- JetBrains. (2024). *Ktor: Asynchronous HTTP client and server framework for Kotlin*. JetBrains. https://ktor.io/
 - Jones, M., Bradley, J., & Sakimura, N. (2015). *JSON Web Token (JWT)* (RFC 7519). Internet Engineering Task Force (IETF). https://doi.org/10.17487/RFC7519
-- Square Inc. (2024). *Retrofit: A type-safe HTTP client for Android and Java*. Square Open Source. https://square.github.io/retrofit/
+- TVMaze. (2024). *TVMaze API documentation: Free television and web series REST API*. TVMaze. https://www.tvmaze.com/api
+
+---
+
+## 13. English Summary (Bilingual Requirement)
+
+This project extends **Practice 2** into a full cross-platform **Kotlin Multiplatform (KMP)** solution targeting Android and iOS. It integrates the public **TVMaze API** for real-time TV show search, metadata retrieval, poster viewing, and detailed synopses without requiring private API keys. It features a complete **offline-first local persistence architecture** with an offline action queue and idempotent batch synchronization (`POST /sync/favorites`) preventing duplicates. Additionally, it implements a verifiable, rule-based **genre frequency recommendation engine**, **Google OAuth authentication**, and **Role-Based Access Control (RBAC)** audited endpoints on the Flask backend protected by `@admin_required` (returning HTTP 403 Forbidden for unauthorized requests). All 15 automated backend tests and the structured QA test cases pass with 100% compliance.
