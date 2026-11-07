@@ -131,11 +131,11 @@ fun ProfileScreen(
                                 newPassword = ""
                                 val updatedToken = body.token
                                 if (!updatedToken.isNullOrEmpty()) {
-                                    sessionManager.updateUsernameAndToken(updatedToken, body.user.username)
+                                    sessionManager.updateUsernameAndToken(updatedToken, body.user?.username ?: "")
                                 }
                                 successMessage = "¡Tus datos fueron actualizados correctamente!"
                                 Toast.makeText(context, "Perfil actualizado", Toast.LENGTH_SHORT).show()
-                                onProfileUpdated(body.user.username)
+                                onProfileUpdated(body.user?.username ?: "")
                             }
                         } else {
                             val errorJson = response.errorBody()?.string()

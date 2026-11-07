@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -48,18 +49,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import ovh.gabrielhuav.flasklogin.data.api.RetrofitClient
-import ovh.gabrielhuav.flasklogin.data.model.AuthRequest
+import ovh.gabrielhuav.flasklogin.shared.repository.AppRepository
 
 @Composable
 fun RegisterScreen(
+    repository: AppRepository,
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val coroutineScope = rememberCoroutineScope()
-    val apiService = remember { RetrofitClient.getApiService(context) }
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -91,26 +90,15 @@ fun RegisterScreen(
             else -> {
                 isLoading = true
                 coroutineScope.launch {
-                    try {
-                        val response = apiService.register(AuthRequest(username.trim(), password))
-                        isLoading = false
-                        if (response.isSuccessful) {
-                            successMessage = "¡Usuario creado exitosamente! Redirigiendo a inicio de sesión..."
-                            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
-                            delay(1500)
-                            onNavigateToLogin()
-                        } else {
-                            val errorJson = response.errorBody()?.string()
-                            val msg = try {
-                                JSONObject(errorJson ?: "").optString("message", "Error al registrar usuario (${response.code()})")
-                            } catch (e: Exception) {
-                                "Error al registrar usuario: Código ${response.code()}"
-                            }
-                            errorMessage = msg
-                        }
-                    } catch (e: Exception) {
-                        isLoading = false
-                        errorMessage = "No fue posible conectar con el servidor: ${e.localizedMessage}"
+                    val res = repository.register(username.trim(), password)
+                    isLoading = false
+                    if (res.isSuccess) {
+                        successMessage = "¡Usuario creado exitosamente! Redirigiendo a inicio de sesión..."
+                        Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+                        delay(1200)
+                        onNavigateToLogin()
+                    } else {
+                        errorMessage = res.exceptionOrNull()?.message ?: "Error al registrar usuario"
                     }
                 }
             }
@@ -127,7 +115,8 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            shape = RoundedCornerShape(16.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -138,12 +127,12 @@ fun RegisterScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.PersonAdd,
-                    contentDescription = "Icono Registro",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(56.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
                     text = "Registro de Usuario",
@@ -153,36 +142,17 @@ fun RegisterScreen(
                 )
 
                 Text(
-                    text = "Crea una cuenta para interactuar con la API REST",
+                    text = "Crea una cuenta con encriptación bcrypt",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                if (errorMessage != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    ) {
-                        Text(
-                            text = errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
+                // Mensajes de Éxito o Error
                 if (successMessage != null) {
                     Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp)
@@ -196,6 +166,22 @@ fun RegisterScreen(
                     }
                 }
 
+                if (errorMessage != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
                 // Campo Usuario
                 OutlinedTextField(
                     value = username,
@@ -203,17 +189,18 @@ fun RegisterScreen(
                         username = it
                         if (errorMessage != null) errorMessage = null
                     },
-                    label = { Text("Nombre de Usuario") },
+                    label = { Text("Nombre de usuario (mínimo 3 letras)") },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Campo Contraseña
                 OutlinedTextField(
@@ -222,13 +209,13 @@ fun RegisterScreen(
                         password = it
                         if (errorMessage != null) errorMessage = null
                     },
-                    label = { Text("Contraseña") },
+                    label = { Text("Contraseña (mínimo 4 caracteres)") },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     trailingIcon = {
                         IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                             Icon(
                                 imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (isPasswordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+                                contentDescription = null
                             )
                         }
                     },
@@ -238,19 +225,20 @@ fun RegisterScreen(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Confirmar Contraseña
+                // Campo Confirmar Contraseña
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = {
                         confirmPassword = it
                         if (errorMessage != null) errorMessage = null
                     },
-                    label = { Text("Confirmar Contraseña") },
+                    label = { Text("Confirmar contraseña") },
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     singleLine = true,
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -261,18 +249,19 @@ fun RegisterScreen(
                     keyboardActions = KeyboardActions(
                         onDone = { performRegister() }
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Botón Registrar con Estado de Carga
                 Button(
                     onClick = performRegister,
                     enabled = !isLoading,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -281,14 +270,14 @@ fun RegisterScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Crear Cuenta", style = MaterialTheme.typography.titleMedium)
+                        Text("Registrarse", style = MaterialTheme.typography.titleMedium)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(onClick = onNavigateToLogin) {
-                    Text("¿Ya tienes una cuenta? Inicia sesión aquí")
+                    Text("¿Ya tienes una cuenta? Inicia sesión")
                 }
             }
         }

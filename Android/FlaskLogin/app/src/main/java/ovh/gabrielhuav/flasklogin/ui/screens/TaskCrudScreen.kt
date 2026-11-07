@@ -445,10 +445,11 @@ fun TaskCard(
                         )
                     )
 
-                    if (task.createdAt != null) {
+                    val taskCreatedAt = task.createdAt
+                    if (taskCreatedAt != null) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = task.createdAt,
+                            text = taskCreatedAt,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )

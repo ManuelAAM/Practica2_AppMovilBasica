@@ -95,7 +95,7 @@ fun SyncBanner(
                             ) {
                                 Text(
                                     text = "$pendingActionsCount en cola",
-                                    color = Color.white,
+                                    color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
